@@ -13,31 +13,14 @@
  * See the License for the specific language governing permissions and 
  * limitations under the License.
  */
-
 package com.hellblazer.groo;
 
 import javax.management.MBeanServer;
-import javax.management.ObjectName;
 
 /**
  * @author hhildebrand
  * 
  */
-public interface GrooMXBean extends MBeanServer {
-
-    /**
-     * @return the discrimator
-     */
-    public abstract String getDiscrimator();
-
-    /**
-     * @return the mbs
-     */
-    public abstract MBeanServer getMbs();
-
-    /**
-     * @return the name
-     */
-    public abstract ObjectName getName();
+public interface GrooMBean extends MBeanServer {
 
 }
