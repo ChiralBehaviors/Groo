@@ -68,19 +68,22 @@ public class Groo implements GrooMBean {
     */
     @SuppressWarnings("unused")
     private static interface ResourceContext extends RegistrationContext {
-        public void done();
-
         /** An empty ResourceContext which does nothing **/
         public static final ResourceContext NONE = new ResourceContext() {
+                                                     @Override
                                                      public void done() {
                                                      }
 
+                                                     @Override
                                                      public void registering() {
                                                      }
 
+                                                     @Override
                                                      public void unregistered() {
                                                      }
                                                  };
+
+        public void done();
     }
 
     private final static class SingleClassLoaderRepository implements
@@ -336,25 +339,18 @@ public class Groo implements GrooMBean {
     @Override
     public ClassLoader getClassLoader(ObjectName loaderName)
                                                             throws InstanceNotFoundException {
-        final UnsupportedOperationException failed = new UnsupportedOperationException(
-                                                                                       "getClassLoader");
-        final InstanceNotFoundException x = new InstanceNotFoundException(
-                                                                          String.valueOf(loaderName));
-        x.initCause(failed);
-        throw x;
+        throw new UnsupportedOperationException("Not applicable.");
     }
 
     @Override
     public ClassLoader getClassLoaderFor(ObjectName mbeanName)
                                                               throws InstanceNotFoundException {
-        final DynamicMBean mbean = nonNullMBeanFor(mbeanName);
-        return mbean.getClass().getClassLoader();
+        throw new UnsupportedOperationException("Not applicable.");
     }
 
     @Override
     public ClassLoaderRepository getClassLoaderRepository() {
-        ClassLoader ccl = Thread.currentThread().getContextClassLoader();
-        return getSingleClassLoaderRepository(ccl);
+        throw new UnsupportedOperationException("Not applicable.");
     }
 
     @Override
@@ -373,18 +369,6 @@ public class Groo implements GrooMBean {
             res.add(n.getDomain());
         }
         return res.toArray(new String[res.size()]);
-    }
-
-    public DynamicMBean getDynamicMBeanFor(ObjectName name)
-                                                           throws InstanceNotFoundException {
-        DynamicMBean instance = repository.retrieve(name);
-        if (instance != null) {
-            return instance;
-        } else {
-            throw new InstanceNotFoundException(
-                                                String.format("The instance %s was not fount",
-                                                              name));
-        }
     }
 
     @Override
@@ -661,6 +645,36 @@ public class Groo implements GrooMBean {
         return null;
     }
 
+    private Set<ObjectName> filterListOfObjectNames(Set<ObjectName> list,
+                                                    QueryExp query) {
+        if (list.isEmpty() || query == null) {
+            return list;
+        }
+
+        // create a new result set
+        final Set<ObjectName> result = new HashSet<ObjectName>();
+
+        for (ObjectName on : list) {
+            // if on doesn't match query exclude it.
+            if (apply(query, on, this)) {
+                result.add(on);
+            }
+        }
+        return result;
+    }
+
+    private DynamicMBean getDynamicMBeanFor(ObjectName name)
+                                                            throws InstanceNotFoundException {
+        DynamicMBean instance = repository.retrieve(name);
+        if (instance != null) {
+            return instance;
+        } else {
+            throw new InstanceNotFoundException(
+                                                String.format("The instance %s was not fount",
+                                                              name));
+        }
+    }
+
     private NotificationListener getListenerMBean(ObjectName listenerName)
                                                                           throws InstanceNotFoundException {
         Object mbean = getDynamicMBeanFor(listenerName);
@@ -670,6 +684,14 @@ public class Groo implements GrooMBean {
             throw newIllegalArgumentException("MBean is not a NotificationListener: "
                                               + listenerName);
         }
+    }
+
+    private Set<ObjectName> getMatchingNames(ObjectName pattern) {
+        return filterMatchingNames(pattern, getNames());
+    }
+
+    private Set<ObjectName> getNames() {
+        return null;
     }
 
     private NotificationEmitter getNonNullNotificationEmitterFor(ObjectName name)
@@ -760,30 +782,4 @@ public class Groo implements GrooMBean {
             throw new MBeanException(x, x.toString());
         }
     }
-
-    protected Set<ObjectName> getMatchingNames(ObjectName pattern) {
-        return filterMatchingNames(pattern, getNames());
-    }
-
-    protected Set<ObjectName> getNames() {
-        return null;
-    }
-
-    Set<ObjectName> filterListOfObjectNames(Set<ObjectName> list, QueryExp query) {
-        if (list.isEmpty() || query == null) {
-            return list;
-        }
-
-        // create a new result set
-        final Set<ObjectName> result = new HashSet<ObjectName>();
-
-        for (ObjectName on : list) {
-            // if on doesn't match query exclude it.
-            if (apply(query, on, this)) {
-                result.add(on);
-            }
-        }
-        return result;
-    }
-
 }
