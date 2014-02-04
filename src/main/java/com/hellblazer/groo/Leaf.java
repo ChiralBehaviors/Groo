@@ -17,28 +17,23 @@
 package com.hellblazer.groo;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.management.Attribute;
 import javax.management.AttributeList;
 import javax.management.AttributeNotFoundException;
+import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.IntrospectionException;
 import javax.management.InvalidAttributeValueException;
 import javax.management.ListenerNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanInfo;
-import javax.management.MBeanNotificationInfo;
-import javax.management.Notification;
-import javax.management.NotificationEmitter;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.NotCompliantMBeanException;
 import javax.management.NotificationFilter;
 import javax.management.NotificationListener;
 import javax.management.ObjectInstance;
@@ -50,78 +45,8 @@ import javax.management.ReflectionException;
  * @author hhildebrand
  * 
  */
-public class Node implements NodeMXBean {
-
-    private static class ListenerInfo {
-        private static boolean same(Object x, Object y) {
-            if (x == y) {
-                return true;
-            }
-            if (x == null) {
-                return false;
-            }
-            return x.equals(y);
-        }
-
-        public final NotificationFilter   filter;
-        public final Object               handback;
-
-        public final NotificationListener listener;
-
-        public ListenerInfo(NotificationListener listener,
-                            NotificationFilter filter, Object handback) {
-
-            if (listener == null) {
-                throw new IllegalArgumentException("Null listener.");
-            }
-
-            this.listener = listener;
-            this.filter = filter;
-            this.handback = handback;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            }
-
-            if (!(o instanceof ListenerInfo)) {
-                return false;
-            }
-
-            return listener.equals(((ListenerInfo) o).listener);
-        }
-
-        @Override
-        public int hashCode() {
-            return listener.hashCode();
-        }
-
-        boolean equals(NotificationListener listener,
-                       NotificationFilter filter, Object handback) {
-            return this.listener == listener && same(this.filter, filter)
-                   && same(this.handback, handback);
-        }
-    }
-
-    private static final Logger logger = Logger.getLogger(Node.class.getCanonicalName());
-
-    private static void sendNotif(List<ListenerInfo> listeners, Notification n) {
-        for (ListenerInfo li : listeners) {
-            if (li.filter == null || li.filter.isNotificationEnabled(n)) {
-                try {
-                    li.listener.handleNotification(n, li.handback);
-                } catch (Exception e) {
-                    logger.log(Level.FINEST, "sendNotif handleNotification", e);
-                }
-            }
-        }
-    }
-
-    private List<NodeMXBean>                          children;
-    private final Map<ObjectName, List<ListenerInfo>> exactSubscriptionMap   = new HashMap<ObjectName, List<ListenerInfo>>();
-    private final Map<ObjectName, List<ListenerInfo>> patternSubscriptionMap = new HashMap<ObjectName, List<ListenerInfo>>();
+public class Leaf implements NodeMXBean {
+    private MBeanServer mbs;
 
     /**
      * @param name
@@ -139,9 +64,7 @@ public class Node implements NodeMXBean {
                                         NotificationFilter filter,
                                         Object handback)
                                                         throws InstanceNotFoundException {
-        for (NodeMXBean child : children) {
-            child.addNotificationListener(name, listener, filter, handback);
-        }
+        mbs.addNotificationListener(name, listener, filter, handback);
     }
 
     /**
@@ -159,9 +82,7 @@ public class Node implements NodeMXBean {
                                         NotificationFilter filter,
                                         Object handback)
                                                         throws InstanceNotFoundException {
-        for (NodeMXBean child : children) {
-            child.addNotificationListener(name, listener, filter, handback);
-        }
+        mbs.addNotificationListener(name, listener, filter, handback);
     }
 
     /* (non-Javadoc)
@@ -204,8 +125,8 @@ public class Node implements NodeMXBean {
                                                                  ReflectionException,
                                                                  IOException {
         Map<ObjectName, Object> attributes = new HashMap<>();
-        for (NodeMXBean child : children) {
-            attributes.putAll(child.getAttribute(name, queryExpr, attribute));
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            attributes.put(instance, mbs.getAttribute(instance, attribute));
         }
         return attributes;
     }
@@ -227,13 +148,7 @@ public class Node implements NodeMXBean {
                                                                  AttributeNotFoundException,
                                                                  InstanceNotFoundException,
                                                                  ReflectionException {
-        for (NodeMXBean child : children) {
-            Object attr = child.getAttribute(name, attribute);
-            if (attr != null) {
-                return attr;
-            }
-        }
-        return null;
+        return mbs.getAttribute(name, attribute);
     }
 
     /* (non-Javadoc)
@@ -247,8 +162,8 @@ public class Node implements NodeMXBean {
                                                                             ReflectionException,
                                                                             IOException {
         Map<ObjectName, AttributeList> attrs = new HashMap<>();
-        for (NodeMXBean child : children) {
-            attrs.putAll(child.getAttributes(name, queryExpr, attributes));
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            attrs.put(instance, mbs.getAttributes(instance, attributes));
         }
         return attrs;
     }
@@ -266,13 +181,23 @@ public class Node implements NodeMXBean {
     public AttributeList getAttributes(ObjectName name, String[] attributes)
                                                                             throws InstanceNotFoundException,
                                                                             ReflectionException {
-        for (NodeMXBean child : children) {
-            AttributeList attrs = child.getAttributes(name, attributes);
-            if (attrs != null) {
-                return attrs;
-            }
-        }
-        return null;
+        return mbs.getAttributes(name, attributes);
+    }
+
+    /**
+     * @return
+     * @see javax.management.MBeanServer#getDefaultDomain()
+     */
+    public String getDefaultDomain() {
+        return mbs.getDefaultDomain();
+    }
+
+    /**
+     * @return
+     * @see javax.management.MBeanServer#getDomains()
+     */
+    public String[] getDomains() {
+        return mbs.getDomains();
     }
 
     /**
@@ -281,11 +206,7 @@ public class Node implements NodeMXBean {
      */
     @Override
     public Integer getMBeanCount() {
-        int count = 0;
-        for (NodeMXBean child : children) {
-            count += child.getMBeanCount();
-        }
-        return count;
+        return mbs.getMBeanCount();
     }
 
     /* (non-Javadoc)
@@ -293,11 +214,7 @@ public class Node implements NodeMXBean {
      */
     @Override
     public int getMBeanCount(ObjectName filter) {
-        int count = 0;
-        for (NodeMXBean child : children) {
-            count += child.getMBeanCount(filter);
-        }
-        return count;
+        return mbs.queryNames(filter, null).size();
     }
 
     /**
@@ -313,13 +230,18 @@ public class Node implements NodeMXBean {
                                                   throws InstanceNotFoundException,
                                                   IntrospectionException,
                                                   ReflectionException {
-        for (NodeMXBean child : children) {
-            MBeanInfo info = child.getMBeanInfo(name);
-            if (info != null) {
-                return info;
-            }
-        }
-        return null;
+        return mbs.getMBeanInfo(name);
+    }
+
+    /**
+     * @param name
+     * @return
+     * @throws InstanceNotFoundException
+     * @see javax.management.MBeanServer#getObjectInstance(javax.management.ObjectName)
+     */
+    public ObjectInstance getObjectInstance(ObjectName name)
+                                                            throws InstanceNotFoundException {
+        return mbs.getObjectInstance(name);
     }
 
     /* (non-Javadoc)
@@ -327,18 +249,14 @@ public class Node implements NodeMXBean {
      */
     @Override
     public Set<ObjectInstance> getObjectInstances(ObjectName name,
-                                                  QueryExp queryExpr)
-                                                                     throws InstanceNotFoundException,
-                                                                     IOException {
-        Set<ObjectInstance> instances = new HashSet<>();
-        for (NodeMXBean child : children) {
-            instances.addAll(child.getObjectInstances(name, queryExpr));
-        }
-        return instances;
+                                                 QueryExp queryExpr)
+                                                                    throws InstanceNotFoundException,
+                                                                    IOException {
+        return mbs.queryMBeans(name, queryExpr);
     }
 
     /* (non-Javadoc)
-     * @see com.hellblazer.groo.NodeMXBean#invoke(javax.management.ObjectName, javax.management.Query, java.lang.String, java.lang.Object[], java.lang.String[])
+     * @see com.hellblazer.groo.NodeMXBean#invoke(javax.management.ObjectName, javax.management.QueryExp, java.lang.String, java.lang.Object[], java.lang.String[])
      */
     @Override
     public Map<ObjectName, Object> invoke(ObjectName name, QueryExp queryExpr,
@@ -349,9 +267,9 @@ public class Node implements NodeMXBean {
                                                                               ReflectionException,
                                                                               IOException {
         Map<ObjectName, Object> results = new HashMap<>();
-        for (NodeMXBean child : children) {
-            results.putAll(child.invoke(name, queryExpr, operationName, params,
-                                        signature));
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            results.put(instance,
+                        mbs.invoke(name, operationName, params, signature));
         }
         return results;
     }
@@ -374,13 +292,7 @@ public class Node implements NodeMXBean {
                                                              throws InstanceNotFoundException,
                                                              MBeanException,
                                                              ReflectionException {
-        for (NodeMXBean child : children) {
-            Object result = child.invoke(name, operationName, params, signature);
-            if (result != null) {
-                return result;
-            }
-        }
-        return null; // TODO need a marker
+        return mbs.invoke(name, operationName, params, signature);
     }
 
     /**
@@ -388,72 +300,64 @@ public class Node implements NodeMXBean {
      * @param className
      * @return
      * @throws InstanceNotFoundException
-     * @throws IOException
      * @see javax.management.MBeanServer#isInstanceOf(javax.management.ObjectName,
      *      java.lang.String)
      */
     @Override
     public boolean isInstanceOf(ObjectName name, String className)
-                                                                  throws InstanceNotFoundException,
-                                                                  IOException {
-        for (NodeMXBean child : children) {
-            if (child.isInstanceOf(name, className)) {
-                return true;
-            }
-        }
-        return false;
+                                                                  throws InstanceNotFoundException {
+        return mbs.isInstanceOf(name, className);
     }
 
     /**
      * @param name
      * @return
-     * @throws IOException
      * @see javax.management.MBeanServer#isRegistered(javax.management.ObjectName)
      */
     @Override
-    public boolean isRegistered(ObjectName name) throws IOException {
-        for (NodeMXBean child : children) {
-            if (child.isRegistered(name)) {
-                return true;
-            }
-        }
-        return false;
+    public boolean isRegistered(ObjectName name) {
+        return mbs.isRegistered(name);
     }
 
     /**
      * @param name
      * @param query
      * @return
-     * @throws IOException
      * @see javax.management.MBeanServer#queryMBeans(javax.management.ObjectName,
      *      javax.management.QueryExp)
      */
     @Override
-    public Set<ObjectInstance> queryMBeans(ObjectName name, QueryExp query)
-                                                                           throws IOException {
-        Set<ObjectInstance> result = new HashSet<>();
-        for (NodeMXBean child : children) {
-            result.addAll(child.queryMBeans(name, query));
-        }
-        return result;
+    public Set<ObjectInstance> queryMBeans(ObjectName name, QueryExp query) {
+        return mbs.queryMBeans(name, query);
     }
 
     /**
      * @param name
      * @param query
      * @return
-     * @throws IOException
      * @see javax.management.MBeanServer#queryNames(javax.management.ObjectName,
      *      javax.management.QueryExp)
      */
     @Override
-    public Set<ObjectName> queryNames(ObjectName name, QueryExp query)
-                                                                      throws IOException {
-        Set<ObjectName> result = new HashSet<>();
-        for (NodeMXBean child : children) {
-            result.addAll(child.queryNames(name, query));
-        }
-        return result;
+    public Set<ObjectName> queryNames(ObjectName name, QueryExp query) {
+        return mbs.queryNames(name, query);
+    }
+
+    /**
+     * @param object
+     * @param name
+     * @return
+     * @throws InstanceAlreadyExistsException
+     * @throws MBeanRegistrationException
+     * @throws NotCompliantMBeanException
+     * @see javax.management.MBeanServer#registerMBean(java.lang.Object,
+     *      javax.management.ObjectName)
+     */
+    public ObjectInstance registerMBean(Object object, ObjectName name)
+                                                                       throws InstanceAlreadyExistsException,
+                                                                       MBeanRegistrationException,
+                                                                       NotCompliantMBeanException {
+        return mbs.registerMBean(object, name);
     }
 
     /**
@@ -461,7 +365,6 @@ public class Node implements NodeMXBean {
      * @param listener
      * @throws InstanceNotFoundException
      * @throws ListenerNotFoundException
-     * @throws IOException
      * @see javax.management.MBeanServer#removeNotificationListener(javax.management.ObjectName,
      *      javax.management.NotificationListener)
      */
@@ -469,11 +372,8 @@ public class Node implements NodeMXBean {
     public void removeNotificationListener(ObjectName name,
                                            NotificationListener listener)
                                                                          throws InstanceNotFoundException,
-                                                                         ListenerNotFoundException,
-                                                                         IOException {
-        for (NodeMXBean child : children) {
-            child.removeNotificationListener(name, listener);
-        }
+                                                                         ListenerNotFoundException {
+        mbs.removeNotificationListener(name, listener);
     }
 
     /**
@@ -483,7 +383,6 @@ public class Node implements NodeMXBean {
      * @param handback
      * @throws InstanceNotFoundException
      * @throws ListenerNotFoundException
-     * @throws IOException
      * @see javax.management.MBeanServer#removeNotificationListener(javax.management.ObjectName,
      *      javax.management.NotificationListener,
      *      javax.management.NotificationFilter, java.lang.Object)
@@ -494,11 +393,8 @@ public class Node implements NodeMXBean {
                                            NotificationFilter filter,
                                            Object handback)
                                                            throws InstanceNotFoundException,
-                                                           ListenerNotFoundException,
-                                                           IOException {
-        for (NodeMXBean child : children) {
-            child.removeNotificationListener(name, listener, filter, handback);
-        }
+                                                           ListenerNotFoundException {
+        mbs.removeNotificationListener(name, listener, filter, handback);
     }
 
     /**
@@ -506,18 +402,14 @@ public class Node implements NodeMXBean {
      * @param listener
      * @throws InstanceNotFoundException
      * @throws ListenerNotFoundException
-     * @throws IOException
      * @see javax.management.MBeanServer#removeNotificationListener(javax.management.ObjectName,
      *      javax.management.ObjectName)
      */
     @Override
     public void removeNotificationListener(ObjectName name, ObjectName listener)
                                                                                 throws InstanceNotFoundException,
-                                                                                ListenerNotFoundException,
-                                                                                IOException {
-        for (NodeMXBean child : children) {
-            child.removeNotificationListener(name, listener);
-        }
+                                                                                ListenerNotFoundException {
+        mbs.removeNotificationListener(name, listener);
     }
 
     /**
@@ -527,7 +419,6 @@ public class Node implements NodeMXBean {
      * @param handback
      * @throws InstanceNotFoundException
      * @throws ListenerNotFoundException
-     * @throws IOException
      * @see javax.management.MBeanServer#removeNotificationListener(javax.management.ObjectName,
      *      javax.management.ObjectName, javax.management.NotificationFilter,
      *      java.lang.Object)
@@ -538,11 +429,8 @@ public class Node implements NodeMXBean {
                                            NotificationFilter filter,
                                            Object handback)
                                                            throws InstanceNotFoundException,
-                                                           ListenerNotFoundException,
-                                                           IOException {
-        for (NodeMXBean child : children) {
-            child.removeNotificationListener(name, listener, filter, handback);
-        }
+                                                           ListenerNotFoundException {
+        mbs.removeNotificationListener(name, listener, filter, handback);
     }
 
     /* (non-Javadoc)
@@ -609,7 +497,6 @@ public class Node implements NodeMXBean {
      * @throws InvalidAttributeValueException
      * @throws MBeanException
      * @throws ReflectionException
-     * @throws IOException
      * @see javax.management.MBeanServer#setAttribute(javax.management.ObjectName,
      *      javax.management.Attribute)
      */
@@ -619,11 +506,8 @@ public class Node implements NodeMXBean {
                                                                   AttributeNotFoundException,
                                                                   InvalidAttributeValueException,
                                                                   MBeanException,
-                                                                  ReflectionException,
-                                                                  IOException {
-        for (NodeMXBean child : children) {
-            child.setAttribute(name, attribute);
-        }
+                                                                  ReflectionException {
+        mbs.setAttribute(name, attribute);
     }
 
     /* (non-Javadoc)
@@ -638,9 +522,10 @@ public class Node implements NodeMXBean {
                                                  MBeanException,
                                                  ReflectionException,
                                                  IOException {
-        for (NodeMXBean child : children) {
-            child.setAttribute(name, queryExpr, attribute);
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            mbs.setAttribute(instance, attribute);
         }
+
     }
 
     /**
@@ -649,19 +534,14 @@ public class Node implements NodeMXBean {
      * @return
      * @throws InstanceNotFoundException
      * @throws ReflectionException
-     * @throws IOException
      * @see javax.management.MBeanServer#setAttributes(javax.management.ObjectName,
      *      javax.management.AttributeList)
      */
     @Override
     public AttributeList setAttributes(ObjectName name, AttributeList attributes)
                                                                                  throws InstanceNotFoundException,
-                                                                                 ReflectionException,
-                                                                                 IOException {
-        for (NodeMXBean child : children) {
-            child.setAttributes(name, attributes);
-        }
-        return attributes;
+                                                                                 ReflectionException {
+        return mbs.setAttributes(name, attributes);
     }
 
     /* (non-Javadoc)
@@ -673,181 +553,10 @@ public class Node implements NodeMXBean {
                                                                 throws InstanceNotFoundException,
                                                                 ReflectionException,
                                                                 IOException {
-        for (NodeMXBean child : children) {
-            child.setAttributes(name, queryExpr, attributes);
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            mbs.setAttributes(instance, attributes);
         }
         return attributes;
     }
 
-    protected NotificationEmitter getNotificationEmitterFor(final ObjectName name)
-                                                                                  throws InstanceNotFoundException {
-        final NotificationEmitter emitter = new NotificationEmitter() {
-            @Override
-            public void addNotificationListener(NotificationListener listener,
-                                                NotificationFilter filter,
-                                                Object handback)
-                                                                throws IllegalArgumentException {
-                subscribe(name, listener, filter, handback);
-            }
-
-            @Override
-            public MBeanNotificationInfo[] getNotificationInfo() {
-                return null;
-            }
-
-            @Override
-            public void removeNotificationListener(NotificationListener listener)
-                                                                                 throws ListenerNotFoundException {
-                unsubscribe(name, listener);
-            }
-
-            @Override
-            public void removeNotificationListener(NotificationListener listener,
-                                                   NotificationFilter filter,
-                                                   Object handback)
-                                                                   throws ListenerNotFoundException {
-                unsubscribe(name, listener, filter, handback);
-            }
-        };
-        return emitter;
-    }
-
-    protected void publish(ObjectName emitterName, Notification n) {
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("publish " + emitterName);
-        }
-
-        if (n == null) {
-            throw new IllegalArgumentException("Null notification");
-        }
-
-        if (emitterName == null) {
-            throw new IllegalArgumentException("Null emitter name");
-        } else if (emitterName.isPattern()) {
-            throw new IllegalArgumentException(
-                                               "The emitter must not be an ObjectName pattern");
-        }
-
-        final List<ListenerInfo> listeners = new ArrayList<ListenerInfo>();
-
-        synchronized (exactSubscriptionMap) {
-            List<ListenerInfo> exactListeners = exactSubscriptionMap.get(emitterName);
-            if (exactListeners != null) {
-                listeners.addAll(exactListeners);
-            }
-        }
-        synchronized (patternSubscriptionMap) {
-            for (ObjectName on : patternSubscriptionMap.keySet()) {
-                if (on.apply(emitterName)) {
-                    listeners.addAll(patternSubscriptionMap.get(on));
-                }
-            }
-        }
-
-        sendNotif(listeners, n);
-    }
-
-    protected void subscribe(ObjectName name, NotificationListener listener,
-                             NotificationFilter filter, Object handback) {
-
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("subscribe " + name);
-        }
-
-        if (name == null) {
-            throw new IllegalArgumentException("Null MBean name");
-        }
-
-        if (listener == null) {
-            throw new IllegalArgumentException("Null listener");
-        }
-
-        Map<ObjectName, List<ListenerInfo>> map = name.isPattern() ? patternSubscriptionMap
-                                                                  : exactSubscriptionMap;
-
-        final ListenerInfo li = new ListenerInfo(listener, filter, handback);
-        List<ListenerInfo> list;
-
-        synchronized (map) {
-            list = map.get(name);
-            if (list == null) {
-                list = new ArrayList<ListenerInfo>();
-                map.put(name, list);
-            }
-            list.add(li);
-        }
-    }
-
-    protected void unsubscribe(ObjectName name, NotificationListener listener)
-                                                                              throws ListenerNotFoundException {
-
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("unsubscribe2 " + name);
-        }
-
-        if (name == null) {
-            throw new IllegalArgumentException("Null MBean name");
-        }
-
-        if (listener == null) {
-            throw new ListenerNotFoundException();
-        }
-
-        Map<ObjectName, List<ListenerInfo>> map = name.isPattern() ? patternSubscriptionMap
-                                                                  : exactSubscriptionMap;
-
-        final ListenerInfo li = new ListenerInfo(listener, null, null);
-        List<ListenerInfo> list;
-        synchronized (map) {
-            list = map.get(name);
-            if (list == null || !list.remove(li)) {
-                throw new ListenerNotFoundException();
-            }
-
-            if (list.isEmpty()) {
-                map.remove(name);
-            }
-        }
-    }
-
-    protected void unsubscribe(ObjectName name, NotificationListener listener,
-                               NotificationFilter filter, Object handback)
-                                                                          throws ListenerNotFoundException {
-
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("unsubscribe4 " + name);
-        }
-
-        if (name == null) {
-            throw new IllegalArgumentException("Null MBean name");
-        }
-
-        if (listener == null) {
-            throw new ListenerNotFoundException();
-        }
-
-        Map<ObjectName, List<ListenerInfo>> map = name.isPattern() ? patternSubscriptionMap
-                                                                  : exactSubscriptionMap;
-
-        List<ListenerInfo> list;
-        synchronized (map) {
-            list = map.get(name);
-            boolean removed = false;
-            for (Iterator<ListenerInfo> it = list.iterator(); it.hasNext();) {
-                ListenerInfo li = it.next();
-                if (li.equals(listener, filter, handback)) {
-                    it.remove();
-                    removed = true;
-                    break;
-                }
-            }
-            if (!removed) {
-                throw new ListenerNotFoundException();
-            }
-
-            if (list.isEmpty()) {
-                map.remove(name);
-            }
-        }
-    }
 }

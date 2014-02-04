@@ -98,7 +98,7 @@ public interface NodeMXBean {
                                                   IntrospectionException,
                                                   ReflectionException;
 
-    public Map<ObjectName, ObjectInstance> getObjectInstance(ObjectName name,
+    public Set<ObjectInstance> getObjectInstances(ObjectName name,
                                                              QueryExp queryExpr)
                                                                                 throws InstanceNotFoundException,
                                                                                 IOException;
