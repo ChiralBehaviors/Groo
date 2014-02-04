@@ -40,7 +40,7 @@ import javax.management.ReflectionException;
  * @author hhildebrand
  * 
  */
-public interface NodeMXBean {
+public interface NodeMBean {
     public void addNotificationListener(ObjectName name,
                                         NotificationListener listener,
                                         NotificationFilter filter,
@@ -99,9 +99,9 @@ public interface NodeMXBean {
                                                   ReflectionException;
 
     public Set<ObjectInstance> getObjectInstances(ObjectName name,
-                                                             QueryExp queryExpr)
-                                                                                throws InstanceNotFoundException,
-                                                                                IOException;
+                                                  QueryExp queryExpr)
+                                                                     throws InstanceNotFoundException,
+                                                                     IOException;
 
     public Object invoke(ObjectName name, String operationName,
                          Object[] params, String[] signature)
@@ -198,11 +198,12 @@ public interface NodeMXBean {
                                                                                  ReflectionException,
                                                                                  IOException;
 
-    public AttributeList setAttributes(ObjectName name, QueryExp queryExpr,
-                                       AttributeList attributes)
-                                                                throws InstanceNotFoundException,
-                                                                ReflectionException,
-                                                                IOException;
+    public Map<ObjectName, AttributeList> setAttributes(ObjectName name,
+                                                        QueryExp queryExpr,
+                                                        AttributeList attributes)
+                                                                                 throws InstanceNotFoundException,
+                                                                                 ReflectionException,
+                                                                                 IOException;
 
     int getMBeanCount(ObjectName filter);
 

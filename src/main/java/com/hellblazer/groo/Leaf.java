@@ -31,6 +31,7 @@ import javax.management.InvalidAttributeValueException;
 import javax.management.ListenerNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanInfo;
+import javax.management.MBeanRegistration;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
 import javax.management.NotCompliantMBeanException;
@@ -45,8 +46,9 @@ import javax.management.ReflectionException;
  * @author hhildebrand
  * 
  */
-public class Leaf implements NodeMXBean {
+public class Leaf implements LeafMBean, MBeanRegistration {
     private MBeanServer mbs;
+    private ObjectName  name;
 
     /**
      * @param name
@@ -186,22 +188,6 @@ public class Leaf implements NodeMXBean {
 
     /**
      * @return
-     * @see javax.management.MBeanServer#getDefaultDomain()
-     */
-    public String getDefaultDomain() {
-        return mbs.getDefaultDomain();
-    }
-
-    /**
-     * @return
-     * @see javax.management.MBeanServer#getDomains()
-     */
-    public String[] getDomains() {
-        return mbs.getDomains();
-    }
-
-    /**
-     * @return
      * @see javax.management.MBeanServer#getMBeanCount()
      */
     @Override
@@ -234,6 +220,13 @@ public class Leaf implements NodeMXBean {
     }
 
     /**
+     * @return the name
+     */
+    public ObjectName getName() {
+        return name;
+    }
+
+    /**
      * @param name
      * @return
      * @throws InstanceNotFoundException
@@ -249,9 +242,9 @@ public class Leaf implements NodeMXBean {
      */
     @Override
     public Set<ObjectInstance> getObjectInstances(ObjectName name,
-                                                 QueryExp queryExpr)
-                                                                    throws InstanceNotFoundException,
-                                                                    IOException {
+                                                  QueryExp queryExpr)
+                                                                     throws InstanceNotFoundException,
+                                                                     IOException {
         return mbs.queryMBeans(name, queryExpr);
     }
 
@@ -269,7 +262,7 @@ public class Leaf implements NodeMXBean {
         Map<ObjectName, Object> results = new HashMap<>();
         for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
             results.put(instance,
-                        mbs.invoke(name, operationName, params, signature));
+                        mbs.invoke(instance, operationName, params, signature));
         }
         return results;
     }
@@ -317,6 +310,38 @@ public class Leaf implements NodeMXBean {
     @Override
     public boolean isRegistered(ObjectName name) {
         return mbs.isRegistered(name);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#postDeregister()
+     */
+    @Override
+    public void postDeregister() {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#postRegister(java.lang.Boolean)
+     */
+    @Override
+    public void postRegister(Boolean registrationDone) {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#preDeregister()
+     */
+    @Override
+    public void preDeregister() throws Exception {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#preRegister(javax.management.MBeanServer, javax.management.ObjectName)
+     */
+    @Override
+    public ObjectName preRegister(MBeanServer server, ObjectName name)
+                                                                      throws Exception {
+        mbs = server;
+        this.name = name;
+        return name;
     }
 
     /**
@@ -548,15 +573,17 @@ public class Leaf implements NodeMXBean {
      * @see com.hellblazer.groo.NodeMXBean#setAttributes(javax.management.ObjectName, javax.management.QueryExp, javax.management.AttributeList)
      */
     @Override
-    public AttributeList setAttributes(ObjectName name, QueryExp queryExpr,
-                                       AttributeList attributes)
-                                                                throws InstanceNotFoundException,
-                                                                ReflectionException,
-                                                                IOException {
+    public Map<ObjectName, AttributeList> setAttributes(ObjectName name,
+                                                        QueryExp queryExpr,
+                                                        AttributeList attributes)
+                                                                                 throws InstanceNotFoundException,
+                                                                                 ReflectionException,
+                                                                                 IOException {
+        Map<ObjectName, AttributeList> results = new HashMap<>();
         for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
-            mbs.setAttributes(instance, attributes);
+            results.put(instance, mbs.setAttributes(instance, attributes));
         }
-        return attributes;
+        return results;
     }
 
 }

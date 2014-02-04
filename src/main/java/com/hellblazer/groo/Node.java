@@ -50,7 +50,7 @@ import javax.management.ReflectionException;
  * @author hhildebrand
  * 
  */
-public class Node implements NodeMXBean {
+public class Node implements NodeMBean {
 
     private static class ListenerInfo {
         private static boolean same(Object x, Object y) {
@@ -119,7 +119,7 @@ public class Node implements NodeMXBean {
         }
     }
 
-    private List<NodeMXBean>                          children;
+    private List<NodeMBean>                           children;
     private final Map<ObjectName, List<ListenerInfo>> exactSubscriptionMap   = new HashMap<ObjectName, List<ListenerInfo>>();
     private final Map<ObjectName, List<ListenerInfo>> patternSubscriptionMap = new HashMap<ObjectName, List<ListenerInfo>>();
 
@@ -139,7 +139,7 @@ public class Node implements NodeMXBean {
                                         NotificationFilter filter,
                                         Object handback)
                                                         throws InstanceNotFoundException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.addNotificationListener(name, listener, filter, handback);
         }
     }
@@ -159,7 +159,7 @@ public class Node implements NodeMXBean {
                                         NotificationFilter filter,
                                         Object handback)
                                                         throws InstanceNotFoundException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.addNotificationListener(name, listener, filter, handback);
         }
     }
@@ -204,7 +204,7 @@ public class Node implements NodeMXBean {
                                                                  ReflectionException,
                                                                  IOException {
         Map<ObjectName, Object> attributes = new HashMap<>();
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             attributes.putAll(child.getAttribute(name, queryExpr, attribute));
         }
         return attributes;
@@ -227,7 +227,7 @@ public class Node implements NodeMXBean {
                                                                  AttributeNotFoundException,
                                                                  InstanceNotFoundException,
                                                                  ReflectionException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             Object attr = child.getAttribute(name, attribute);
             if (attr != null) {
                 return attr;
@@ -247,7 +247,7 @@ public class Node implements NodeMXBean {
                                                                             ReflectionException,
                                                                             IOException {
         Map<ObjectName, AttributeList> attrs = new HashMap<>();
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             attrs.putAll(child.getAttributes(name, queryExpr, attributes));
         }
         return attrs;
@@ -266,7 +266,7 @@ public class Node implements NodeMXBean {
     public AttributeList getAttributes(ObjectName name, String[] attributes)
                                                                             throws InstanceNotFoundException,
                                                                             ReflectionException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             AttributeList attrs = child.getAttributes(name, attributes);
             if (attrs != null) {
                 return attrs;
@@ -282,7 +282,7 @@ public class Node implements NodeMXBean {
     @Override
     public Integer getMBeanCount() {
         int count = 0;
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             count += child.getMBeanCount();
         }
         return count;
@@ -294,7 +294,7 @@ public class Node implements NodeMXBean {
     @Override
     public int getMBeanCount(ObjectName filter) {
         int count = 0;
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             count += child.getMBeanCount(filter);
         }
         return count;
@@ -313,7 +313,7 @@ public class Node implements NodeMXBean {
                                                   throws InstanceNotFoundException,
                                                   IntrospectionException,
                                                   ReflectionException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             MBeanInfo info = child.getMBeanInfo(name);
             if (info != null) {
                 return info;
@@ -331,7 +331,7 @@ public class Node implements NodeMXBean {
                                                                      throws InstanceNotFoundException,
                                                                      IOException {
         Set<ObjectInstance> instances = new HashSet<>();
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             instances.addAll(child.getObjectInstances(name, queryExpr));
         }
         return instances;
@@ -349,7 +349,7 @@ public class Node implements NodeMXBean {
                                                                               ReflectionException,
                                                                               IOException {
         Map<ObjectName, Object> results = new HashMap<>();
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             results.putAll(child.invoke(name, queryExpr, operationName, params,
                                         signature));
         }
@@ -374,7 +374,7 @@ public class Node implements NodeMXBean {
                                                              throws InstanceNotFoundException,
                                                              MBeanException,
                                                              ReflectionException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             Object result = child.invoke(name, operationName, params, signature);
             if (result != null) {
                 return result;
@@ -396,7 +396,7 @@ public class Node implements NodeMXBean {
     public boolean isInstanceOf(ObjectName name, String className)
                                                                   throws InstanceNotFoundException,
                                                                   IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             if (child.isInstanceOf(name, className)) {
                 return true;
             }
@@ -412,7 +412,7 @@ public class Node implements NodeMXBean {
      */
     @Override
     public boolean isRegistered(ObjectName name) throws IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             if (child.isRegistered(name)) {
                 return true;
             }
@@ -432,7 +432,7 @@ public class Node implements NodeMXBean {
     public Set<ObjectInstance> queryMBeans(ObjectName name, QueryExp query)
                                                                            throws IOException {
         Set<ObjectInstance> result = new HashSet<>();
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             result.addAll(child.queryMBeans(name, query));
         }
         return result;
@@ -450,7 +450,7 @@ public class Node implements NodeMXBean {
     public Set<ObjectName> queryNames(ObjectName name, QueryExp query)
                                                                       throws IOException {
         Set<ObjectName> result = new HashSet<>();
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             result.addAll(child.queryNames(name, query));
         }
         return result;
@@ -471,7 +471,7 @@ public class Node implements NodeMXBean {
                                                                          throws InstanceNotFoundException,
                                                                          ListenerNotFoundException,
                                                                          IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.removeNotificationListener(name, listener);
         }
     }
@@ -496,7 +496,7 @@ public class Node implements NodeMXBean {
                                                            throws InstanceNotFoundException,
                                                            ListenerNotFoundException,
                                                            IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.removeNotificationListener(name, listener, filter, handback);
         }
     }
@@ -515,7 +515,7 @@ public class Node implements NodeMXBean {
                                                                                 throws InstanceNotFoundException,
                                                                                 ListenerNotFoundException,
                                                                                 IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.removeNotificationListener(name, listener);
         }
     }
@@ -540,7 +540,7 @@ public class Node implements NodeMXBean {
                                                            throws InstanceNotFoundException,
                                                            ListenerNotFoundException,
                                                            IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.removeNotificationListener(name, listener, filter, handback);
         }
     }
@@ -621,7 +621,7 @@ public class Node implements NodeMXBean {
                                                                   MBeanException,
                                                                   ReflectionException,
                                                                   IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.setAttribute(name, attribute);
         }
     }
@@ -638,7 +638,7 @@ public class Node implements NodeMXBean {
                                                  MBeanException,
                                                  ReflectionException,
                                                  IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.setAttribute(name, queryExpr, attribute);
         }
     }
@@ -658,7 +658,7 @@ public class Node implements NodeMXBean {
                                                                                  throws InstanceNotFoundException,
                                                                                  ReflectionException,
                                                                                  IOException {
-        for (NodeMXBean child : children) {
+        for (NodeMBean child : children) {
             child.setAttributes(name, attributes);
         }
         return attributes;
@@ -668,15 +668,17 @@ public class Node implements NodeMXBean {
      * @see com.hellblazer.groo.NodeMXBean#setAttributes(javax.management.ObjectName, javax.management.QueryExp, javax.management.AttributeList)
      */
     @Override
-    public AttributeList setAttributes(ObjectName name, QueryExp queryExpr,
-                                       AttributeList attributes)
-                                                                throws InstanceNotFoundException,
-                                                                ReflectionException,
-                                                                IOException {
-        for (NodeMXBean child : children) {
-            child.setAttributes(name, queryExpr, attributes);
+    public Map<ObjectName, AttributeList> setAttributes(ObjectName name,
+                                                        QueryExp queryExpr,
+                                                        AttributeList attributes)
+                                                                                 throws InstanceNotFoundException,
+                                                                                 ReflectionException,
+                                                                                 IOException {
+        Map<ObjectName, AttributeList> results = new HashMap<>();
+        for (NodeMBean child : children) {
+            results.putAll(child.setAttributes(name, queryExpr, attributes));
         }
-        return attributes;
+        return results;
     }
 
     protected NotificationEmitter getNotificationEmitterFor(final ObjectName name)
