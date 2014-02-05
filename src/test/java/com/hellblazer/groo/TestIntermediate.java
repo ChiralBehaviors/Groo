@@ -34,9 +34,13 @@ import org.junit.Test;
  * @author hhildebrand
  * 
  */
-public class TestLeaf {
-    private NodeMBean  leaf;
-    private ObjectName leafName;
+public class TestIntermediate {
+    private Node       intermediate;
+    private NodeMBean  leaf1;
+    private NodeMBean  leaf2;
+    private ObjectName leaf1Name;
+    private ObjectName leaf2Name;
+    private ObjectName intermediateName;
     private ObjectName test1a;
     private ObjectName test2a;
     private ObjectName multiTest1;
@@ -46,25 +50,36 @@ public class TestLeaf {
 
     @Before
     public void initialize() throws Exception {
-        MBeanServer mbs = MBeanServerFactory.newMBeanServer();
+        MBeanServer mbs1 = MBeanServerFactory.newMBeanServer();
+        MBeanServer mbs2 = MBeanServerFactory.newMBeanServer();
+        MBeanServer mbs3 = MBeanServerFactory.newMBeanServer();
         test1a = ObjectName.getInstance("MyDomain", "test1", "a");
         test1b = ObjectName.getInstance("MyDomain", "test1", "b");
         test2a = ObjectName.getInstance("MyDomain", "test2", "a");
         test2b = ObjectName.getInstance("MyDomain", "test2", "b");
         multiTest1 = ObjectName.getInstance("MyDomain", "test1", "*");
         multiTest2 = ObjectName.getInstance("MyDomain", "test2", "*");
-        mbs.registerMBean(new Test1(), test1a);
-        mbs.registerMBean(new Test1(), test1b);
-        mbs.registerMBean(new Test2(), test2a);
-        mbs.registerMBean(new Test2(), test2b);
-        leafName = ObjectName.getInstance("leaf-domain", "type", "leaf");
-        leaf = new Node();
-        mbs.registerMBean(leaf, leafName);
+        mbs1.registerMBean(new Test1(), test1a);
+        mbs2.registerMBean(new Test1(), test1b);
+        mbs1.registerMBean(new Test2(), test2a);
+        mbs2.registerMBean(new Test2(), test2b);
+        leaf1Name = ObjectName.getInstance("leaf-domain", "id", "1");
+        leaf2Name = ObjectName.getInstance("leaf-domain", "id", "1");
+        intermediateName = ObjectName.getInstance("intermediate-domain", "id",
+                                                  "1");
+        leaf1 = new Node();
+        leaf2 = new Node();
+        intermediate = new Node();
+        mbs1.registerMBean(leaf1, leaf1Name);
+        mbs2.registerMBean(leaf2, leaf2Name);
+        mbs3.registerMBean(intermediate, intermediateName);
+        intermediate.addChild(leaf1);
+        intermediate.addChild(leaf2);
     }
 
     @Test
     public void testGetAttribute() throws Exception {
-        Object result = leaf.getAttribute(test1a, "Attribute1");
+        Object result = intermediate.getAttribute(test1a, "Attribute1");
         assertNotNull(result);
         assertEquals(-1, result);
     }
@@ -73,7 +88,7 @@ public class TestLeaf {
     public void testGetAttributes() throws Exception {
         AttributeList attrs = new AttributeList();
         attrs.add(new Attribute("Attribute1", null));
-        AttributeList result = leaf.getAttributes(test1a, new String[] {
+        AttributeList result = intermediate.getAttributes(test1a, new String[] {
                 "Attribute1", "Attribute2" });
         assertNotNull(result);
         assertEquals(2, result.size());
@@ -85,15 +100,16 @@ public class TestLeaf {
 
     @Test
     public void testInvoke() throws Exception {
-        Object result = leaf.invoke(test1a, "operation1", null, null);
+        Object result = intermediate.invoke(test1a, "operation1", null, null);
         assertNotNull(result);
         assertEquals("-1", result);
     }
 
     @Test
     public void testMultiGetAttribute() throws Exception {
-        Map<ObjectName, Object> result = leaf.getAttribute(multiTest1, null,
-                                                           "Attribute1");
+        Map<ObjectName, Object> result = intermediate.getAttribute(multiTest1,
+                                                                   null,
+                                                                   "Attribute1");
         assertNotNull(result);
         assertEquals(2, result.size());
         for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
@@ -107,11 +123,11 @@ public class TestLeaf {
     public void testMultiGetAttributes() throws Exception {
         AttributeList attrs = new AttributeList();
         attrs.add(new Attribute("Attribute1", null));
-        Map<ObjectName, AttributeList> result = leaf.getAttributes(multiTest1,
-                                                                   null,
-                                                                   new String[] {
-                                                                           "Attribute1",
-                                                                           "Attribute2" });
+        Map<ObjectName, AttributeList> result = intermediate.getAttributes(multiTest1,
+                                                                           null,
+                                                                           new String[] {
+                                                                                   "Attribute1",
+                                                                                   "Attribute2" });
         assertNotNull(result);
         assertEquals(2, result.size());
         for (AttributeList list : result.values()) {
@@ -126,8 +142,9 @@ public class TestLeaf {
 
     @Test
     public void testMultiInvoke() throws Exception {
-        Map<ObjectName, Object> result = leaf.invoke(multiTest1, null,
-                                                     "operation1", null, null);
+        Map<ObjectName, Object> result = intermediate.invoke(multiTest1, null,
+                                                             "operation1",
+                                                             null, null);
         assertNotNull(result);
         assertEquals(2, result.size());
         for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
@@ -136,9 +153,11 @@ public class TestLeaf {
         assertNotNull(result.get(test1a));
         assertNotNull(result.get(test1b));
 
-        result = leaf.invoke(multiTest2, null, "operationFoo",
-                             new Object[] { "testy" },
-                             new String[] { String.class.getCanonicalName() });
+        result = intermediate.invoke(multiTest2,
+                                     null,
+                                     "operationFoo",
+                                     new Object[] { "testy" },
+                                     new String[] { String.class.getCanonicalName() });
         assertNotNull(result);
         assertEquals(2, result.size());
         for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
@@ -150,11 +169,12 @@ public class TestLeaf {
 
     @Test
     public void testMultiSetAttribute() throws Exception {
-        leaf.setAttribute(multiTest1, null, new Attribute("Attribute1", 1));
-        Object result = leaf.getAttribute(test1a, "Attribute1");
+        intermediate.setAttribute(multiTest1, null, new Attribute("Attribute1",
+                                                                  1));
+        Object result = intermediate.getAttribute(test1a, "Attribute1");
         assertNotNull(result);
         assertEquals(1, result);
-        result = leaf.getAttribute(test1b, "Attribute1");
+        result = intermediate.getAttribute(test1b, "Attribute1");
         assertNotNull(result);
         assertEquals(1, result);
     }
@@ -164,8 +184,9 @@ public class TestLeaf {
         AttributeList attrs = new AttributeList();
         attrs.add(new Attribute("Attribute1", 1));
         attrs.add(new Attribute("Attribute2", 2));
-        Map<ObjectName, AttributeList> result = leaf.setAttributes(multiTest1,
-                                                                   null, attrs);
+        Map<ObjectName, AttributeList> result = intermediate.setAttributes(multiTest1,
+                                                                           null,
+                                                                           attrs);
         assertEquals(2, result.size());
         for (AttributeList list : result.values()) {
             assertEquals("Attribute1", list.asList().get(0).getName());
@@ -179,8 +200,8 @@ public class TestLeaf {
 
     @Test
     public void testSetAttribute() throws Exception {
-        leaf.setAttribute(test1a, new Attribute("Attribute1", 1));
-        Object result = leaf.getAttribute(test1a, "Attribute1");
+        intermediate.setAttribute(test1a, new Attribute("Attribute1", 1));
+        Object result = intermediate.getAttribute(test1a, "Attribute1");
         assertNotNull(result);
         assertEquals(1, result);
     }
@@ -190,7 +211,7 @@ public class TestLeaf {
         AttributeList attrs = new AttributeList();
         attrs.add(new Attribute("Attribute1", 1));
         attrs.add(new Attribute("Attribute2", 2));
-        AttributeList result = leaf.setAttributes(test1a, attrs);
+        AttributeList result = intermediate.setAttributes(test1a, attrs);
         assertEquals(2, result.size());
         assertEquals("Attribute1", result.asList().get(0).getName());
         assertEquals("Attribute2", result.asList().get(1).getName());

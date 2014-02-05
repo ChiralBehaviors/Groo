@@ -18,13 +18,13 @@ package com.hellblazer.groo;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -122,11 +122,18 @@ public class Node implements NodeMBean, MBeanRegistration {
         }
     }
 
-    private List<NodeMBean>                           children               = Collections.emptyList();
+    private List<NodeMBean>                           children               = new CopyOnWriteArrayList<>();
     private final Map<ObjectName, List<ListenerInfo>> exactSubscriptionMap   = new HashMap<ObjectName, List<ListenerInfo>>();
     private MBeanServer                               mbs;
     private ObjectName                                name;
     private final Map<ObjectName, List<ListenerInfo>> patternSubscriptionMap = new HashMap<ObjectName, List<ListenerInfo>>();
+
+    /**
+     * @param child
+     */
+    public void addChild(NodeMBean child) {
+        children.add(child);
+    }
 
     /**
      * @param name
@@ -236,9 +243,10 @@ public class Node implements NodeMBean, MBeanRegistration {
                                                                  InstanceNotFoundException,
                                                                  ReflectionException {
         for (NodeMBean child : children) {
-            Object attr = child.getAttribute(name, attribute);
-            if (attr != null) {
-                return attr;
+            try {
+                return child.getAttribute(name, attribute);
+            } catch (InstanceNotFoundException e) {
+                // ignored
             }
         }
         return mbs.getAttribute(name, attribute);
@@ -695,7 +703,12 @@ public class Node implements NodeMBean, MBeanRegistration {
                                                                   ReflectionException,
                                                                   IOException {
         for (NodeMBean child : children) {
-            child.setAttribute(name, attribute);
+            try {
+                child.setAttribute(name, attribute);
+                return;
+            } catch (InstanceNotFoundException e) {
+                // ignored
+            }
         }
         mbs.setAttribute(name, attribute);
     }

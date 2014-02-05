@@ -24,13 +24,13 @@ public interface Test1MBean {
 
     int getAttribute1();
 
-    void setAttribute1(int value);
-
     int getAttribute2();
-
-    void setAttribute2(int value);
 
     String operation1();
 
     String operation2();
+
+    void setAttribute1(int value);
+
+    void setAttribute2(int value);
 }

@@ -34,28 +34,11 @@ public class Test1 implements Test1MBean {
     }
 
     /* (non-Javadoc)
-     * @see com.hellblazer.groo.Test1MBean#setAttribute1(int)
-     */
-    @Override
-    public void setAttribute1(int value) {
-        attribute1 = value;
-
-    }
-
-    /* (non-Javadoc)
      * @see com.hellblazer.groo.Test1MBean#getAttribute2()
      */
     @Override
     public int getAttribute2() {
         return attribute2;
-    }
-
-    /* (non-Javadoc)
-     * @see com.hellblazer.groo.Test1MBean#setAttribute2(int)
-     */
-    @Override
-    public void setAttribute2(int value) {
-        attribute2 = value;
     }
 
     /* (non-Javadoc)
@@ -72,5 +55,22 @@ public class Test1 implements Test1MBean {
     @Override
     public String operation2() {
         return Integer.toString(attribute2);
+    }
+
+    /* (non-Javadoc)
+     * @see com.hellblazer.groo.Test1MBean#setAttribute1(int)
+     */
+    @Override
+    public void setAttribute1(int value) {
+        attribute1 = value;
+
+    }
+
+    /* (non-Javadoc)
+     * @see com.hellblazer.groo.Test1MBean#setAttribute2(int)
+     */
+    @Override
+    public void setAttribute2(int value) {
+        attribute2 = value;
     }
 }

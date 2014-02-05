@@ -98,6 +98,11 @@ public interface NodeMBean {
                                                   IntrospectionException,
                                                   ReflectionException;
 
+    public abstract ObjectName getName();
+
+    public abstract ObjectInstance getObjectInstance(ObjectName name)
+                                                          throws InstanceNotFoundException;
+
     public Set<ObjectInstance> getObjectInstances(ObjectName name,
                                                   QueryExp queryExpr)
                                                                      throws InstanceNotFoundException,
@@ -214,9 +219,4 @@ public interface NodeMBean {
                                                       MBeanException,
                                                       ReflectionException,
                                                       IOException;
-
-    public abstract ObjectName getName();
-
-    public abstract ObjectInstance getObjectInstance(ObjectName name)
-                                                          throws InstanceNotFoundException;
 }

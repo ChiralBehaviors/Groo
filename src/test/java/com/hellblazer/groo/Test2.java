@@ -34,6 +34,22 @@ public class Test2 implements Test2MBean {
     }
 
     /* (non-Javadoc)
+     * @see com.hellblazer.groo.Test2MBean#getAttribute2()
+     */
+    @Override
+    public int getAttribute2() {
+        return attribute2;
+    }
+
+    /* (non-Javadoc)
+     * @see com.hellblazer.groo.Test2MBean#operationFoo()
+     */
+    @Override
+    public String operationFoo(String param) {
+        return param;
+    }
+
+    /* (non-Javadoc)
      * @see com.hellblazer.groo.Test2MBean#setAttribute1(int)
      */
     @Override
@@ -43,26 +59,10 @@ public class Test2 implements Test2MBean {
     }
 
     /* (non-Javadoc)
-     * @see com.hellblazer.groo.Test2MBean#getAttribute2()
-     */
-    @Override
-    public int getAttribute2() {
-        return attribute2;
-    }
-
-    /* (non-Javadoc)
      * @see com.hellblazer.groo.Test2MBean#setAttribute2(int)
      */
     @Override
     public void setAttribute2(int value) {
         attribute2 = value;
-    }
-
-    /* (non-Javadoc)
-     * @see com.hellblazer.groo.Test2MBean#operationFoo()
-     */
-    @Override
-    public String operationFoo(String param) {
-        return param;
     }
 }

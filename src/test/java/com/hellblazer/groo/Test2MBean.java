@@ -24,11 +24,11 @@ public interface Test2MBean {
 
     int getAttribute1();
 
-    void setAttribute1(int value);
-
     int getAttribute2();
 
-    void setAttribute2(int value);
-
     String operationFoo(String param);
+
+    void setAttribute1(int value);
+
+    void setAttribute2(int value);
 }
