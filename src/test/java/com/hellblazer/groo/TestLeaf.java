@@ -35,7 +35,7 @@ import org.junit.Test;
  * 
  */
 public class TestLeaf {
-    private Leaf        leaf;
+    private NodeMBean   leaf;
     private MBeanServer mbs;
     private ObjectName  leafName;
     private ObjectName  test1a;
@@ -59,7 +59,7 @@ public class TestLeaf {
         mbs.registerMBean(new Test2(), test2a);
         mbs.registerMBean(new Test2(), test2b);
         leafName = ObjectName.getInstance("leaf-domain", "type", "leaf");
-        leaf = new Leaf();
+        leaf = new Node();
         mbs.registerMBean(leaf, leafName);
     }
 

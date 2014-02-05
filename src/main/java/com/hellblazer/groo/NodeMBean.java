@@ -214,4 +214,9 @@ public interface NodeMBean {
                                                       MBeanException,
                                                       ReflectionException,
                                                       IOException;
+
+    public abstract ObjectName getName();
+
+    public abstract ObjectInstance getObjectInstance(ObjectName name)
+                                                          throws InstanceNotFoundException;
 }

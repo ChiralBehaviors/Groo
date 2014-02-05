@@ -18,6 +18,7 @@ package com.hellblazer.groo;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,6 +38,8 @@ import javax.management.ListenerNotFoundException;
 import javax.management.MBeanException;
 import javax.management.MBeanInfo;
 import javax.management.MBeanNotificationInfo;
+import javax.management.MBeanRegistration;
+import javax.management.MBeanServer;
 import javax.management.Notification;
 import javax.management.NotificationEmitter;
 import javax.management.NotificationFilter;
@@ -50,7 +53,7 @@ import javax.management.ReflectionException;
  * @author hhildebrand
  * 
  */
-public class Node implements NodeMBean {
+public class Node implements NodeMBean, MBeanRegistration {
 
     private static class ListenerInfo {
         private static boolean same(Object x, Object y) {
@@ -119,8 +122,10 @@ public class Node implements NodeMBean {
         }
     }
 
-    private List<NodeMBean>                           children;
+    private List<NodeMBean>                           children               = Collections.emptyList();
     private final Map<ObjectName, List<ListenerInfo>> exactSubscriptionMap   = new HashMap<ObjectName, List<ListenerInfo>>();
+    private MBeanServer                               mbs;
+    private ObjectName                                name;
     private final Map<ObjectName, List<ListenerInfo>> patternSubscriptionMap = new HashMap<ObjectName, List<ListenerInfo>>();
 
     /**
@@ -207,6 +212,9 @@ public class Node implements NodeMBean {
         for (NodeMBean child : children) {
             attributes.putAll(child.getAttribute(name, queryExpr, attribute));
         }
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            attributes.put(instance, mbs.getAttribute(instance, attribute));
+        }
         return attributes;
     }
 
@@ -233,7 +241,7 @@ public class Node implements NodeMBean {
                 return attr;
             }
         }
-        return null;
+        return mbs.getAttribute(name, attribute);
     }
 
     /* (non-Javadoc)
@@ -249,6 +257,9 @@ public class Node implements NodeMBean {
         Map<ObjectName, AttributeList> attrs = new HashMap<>();
         for (NodeMBean child : children) {
             attrs.putAll(child.getAttributes(name, queryExpr, attributes));
+        }
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            attrs.put(instance, mbs.getAttributes(instance, attributes));
         }
         return attrs;
     }
@@ -272,7 +283,7 @@ public class Node implements NodeMBean {
                 return attrs;
             }
         }
-        return null;
+        return mbs.getAttributes(name, attributes);
     }
 
     /**
@@ -285,7 +296,7 @@ public class Node implements NodeMBean {
         for (NodeMBean child : children) {
             count += child.getMBeanCount();
         }
-        return count;
+        return count + mbs.getMBeanCount();
     }
 
     /* (non-Javadoc)
@@ -297,7 +308,7 @@ public class Node implements NodeMBean {
         for (NodeMBean child : children) {
             count += child.getMBeanCount(filter);
         }
-        return count;
+        return count + mbs.queryNames(filter, null).size();
     }
 
     /**
@@ -319,7 +330,30 @@ public class Node implements NodeMBean {
                 return info;
             }
         }
-        return null;
+        return mbs.getMBeanInfo(name);
+    }
+
+    /**
+     * @return the name
+     */
+    @Override
+    public ObjectName getName() {
+        return name;
+    }
+
+    /* (non-Javadoc)
+     * @see com.hellblazer.groo.NodeMBean#getObjectInstance(javax.management.ObjectName)
+     */
+    @Override
+    public ObjectInstance getObjectInstance(ObjectName name)
+                                                            throws InstanceNotFoundException {
+        for (NodeMBean child : children) {
+            ObjectInstance instance = child.getObjectInstance(name);
+            if (instance != null) {
+                return instance;
+            }
+        }
+        return mbs.getObjectInstance(name);
     }
 
     /* (non-Javadoc)
@@ -334,6 +368,7 @@ public class Node implements NodeMBean {
         for (NodeMBean child : children) {
             instances.addAll(child.getObjectInstances(name, queryExpr));
         }
+        instances.addAll(mbs.queryMBeans(name, queryExpr));
         return instances;
     }
 
@@ -352,6 +387,10 @@ public class Node implements NodeMBean {
         for (NodeMBean child : children) {
             results.putAll(child.invoke(name, queryExpr, operationName, params,
                                         signature));
+        }
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            results.put(instance,
+                        mbs.invoke(instance, operationName, params, signature));
         }
         return results;
     }
@@ -380,7 +419,7 @@ public class Node implements NodeMBean {
                 return result;
             }
         }
-        return null; // TODO need a marker
+        return mbs.invoke(name, operationName, params, signature);
     }
 
     /**
@@ -401,7 +440,7 @@ public class Node implements NodeMBean {
                 return true;
             }
         }
-        return false;
+        return mbs.isInstanceOf(name, className);
     }
 
     /**
@@ -417,7 +456,39 @@ public class Node implements NodeMBean {
                 return true;
             }
         }
-        return false;
+        return mbs.isRegistered(name);
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#postDeregister()
+     */
+    @Override
+    public void postDeregister() {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#postRegister(java.lang.Boolean)
+     */
+    @Override
+    public void postRegister(Boolean registrationDone) {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#preDeregister()
+     */
+    @Override
+    public void preDeregister() throws Exception {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#preRegister(javax.management.MBeanServer, javax.management.ObjectName)
+     */
+    @Override
+    public ObjectName preRegister(MBeanServer server, ObjectName name)
+                                                                      throws Exception {
+        mbs = server;
+        this.name = name;
+        return name;
     }
 
     /**
@@ -435,6 +506,7 @@ public class Node implements NodeMBean {
         for (NodeMBean child : children) {
             result.addAll(child.queryMBeans(name, query));
         }
+        result.addAll(mbs.queryMBeans(name, query));
         return result;
     }
 
@@ -453,6 +525,7 @@ public class Node implements NodeMBean {
         for (NodeMBean child : children) {
             result.addAll(child.queryNames(name, query));
         }
+        result.addAll(mbs.queryNames(name, query));
         return result;
     }
 
@@ -624,6 +697,7 @@ public class Node implements NodeMBean {
         for (NodeMBean child : children) {
             child.setAttribute(name, attribute);
         }
+        mbs.setAttribute(name, attribute);
     }
 
     /* (non-Javadoc)
@@ -640,6 +714,9 @@ public class Node implements NodeMBean {
                                                  IOException {
         for (NodeMBean child : children) {
             child.setAttribute(name, queryExpr, attribute);
+        }
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            mbs.setAttribute(instance, attribute);
         }
     }
 
@@ -659,9 +736,12 @@ public class Node implements NodeMBean {
                                                                                  ReflectionException,
                                                                                  IOException {
         for (NodeMBean child : children) {
-            child.setAttributes(name, attributes);
+            AttributeList list = child.setAttributes(name, attributes);
+            if (list != null) {
+                return list;
+            }
         }
-        return attributes;
+        return mbs.setAttributes(name, attributes);
     }
 
     /* (non-Javadoc)
@@ -677,6 +757,9 @@ public class Node implements NodeMBean {
         Map<ObjectName, AttributeList> results = new HashMap<>();
         for (NodeMBean child : children) {
             results.putAll(child.setAttributes(name, queryExpr, attributes));
+        }
+        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
+            results.put(instance, mbs.setAttributes(instance, attributes));
         }
         return results;
     }
