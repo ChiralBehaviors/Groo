@@ -2,6 +2,7 @@ package com.hellblazer.groo;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.management.InstanceNotFoundException;
@@ -60,23 +61,24 @@ abstract public class MbscFactory {
         registerConnectListener();
     }
 
-    public void register(RegistrationFilter filter) {
+    public void register(RegistrationFilter filter, UUID handback) {
         filters.add(filter);
         try {
             getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
                                                                mbsListener,
-                                                               filter, null);
+                                                               filter, handback);
         } catch (InstanceNotFoundException | IOException e) {
             // ignored
         }
     }
 
-    public void deregister(RegistrationFilter filter) {
+    public void deregister(RegistrationFilter filter, UUID handback) {
         filters.remove(filter);
         try {
             getMBeanServerConnection().removeNotificationListener(MBSDelegateObjectName,
                                                                   mbsListener,
-                                                                  filter, null);
+                                                                  filter,
+                                                                  handback);
         } catch (InstanceNotFoundException | ListenerNotFoundException
                 | IOException e) {
             // ignored
@@ -105,7 +107,8 @@ abstract public class MbscFactory {
                                            Object handback) {
                 if (notification instanceof MBeanServerNotification) {
                     groo.handleMBeanServerNotification(MbscFactory.this,
-                                                       (MBeanServerNotification) notification);
+                                                       (MBeanServerNotification) notification,
+                                                       (UUID) handback);
                 }
             }
         };

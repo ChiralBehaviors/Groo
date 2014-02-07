@@ -43,7 +43,21 @@ public class RegistrationFilter implements NotificationFilter, Serializable {
 
     public RegistrationFilter(ObjectName sourcePattern, QueryExp sourceQueury) {
         this.sourcePattern = sourcePattern;
-        this.sourceQuery = sourceQueury;
+        sourceQuery = sourceQueury;
+    }
+
+    /**
+     * @return the sourcePattern
+     */
+    public ObjectName getSourcePattern() {
+        return sourcePattern;
+    }
+
+    /**
+     * @return the sourceQuery
+     */
+    public QueryExp getSourceQuery() {
+        return sourceQuery;
     }
 
     /* (non-Javadoc)
@@ -55,8 +69,8 @@ public class RegistrationFilter implements NotificationFilter, Serializable {
             final MBeanServerNotification n = (MBeanServerNotification) notification;
             final ObjectName sourceName = n.getMBeanName();
             try {
-                return sourcePattern.apply(sourceName)
-                       && (sourceQuery != null && sourceQuery.apply(sourceName));
+                return sourcePattern.apply(sourceName) && sourceQuery != null
+                       && sourceQuery.apply(sourceName);
             } catch (BadStringOperationException | BadBinaryOpValueExpException
                     | BadAttributeValueExpException
                     | InvalidApplicationException e) {

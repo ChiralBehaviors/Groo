@@ -20,20 +20,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.management.InstanceNotFoundException;
-import javax.management.MBeanServer;
-import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerNotification;
 import javax.management.Notification;
 import javax.management.ObjectName;
-import javax.management.QueryExp;
 import javax.management.remote.JMXConnectionNotification;
 
 /**
@@ -42,17 +40,14 @@ import javax.management.remote.JMXConnectionNotification;
  */
 public class Groo implements GrooMBean {
 
-    private static enum State {
-        SHUTTING_DOWN, STARTED, STARTING, STOPPED;
-    }
-
     private static final Logger                               log      = Logger.getLogger(Groo.class.getCanonicalName());
 
     private final ConcurrentMap<MbscFactory, List<NodeMBean>> children = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Node, RegistrationFilter>     filters  = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, Node>                   filters  = new ConcurrentHashMap<>();
     private final String                                      description;
     private final List<Node>                                  parents  = new CopyOnWriteArrayList<>();
-    private final AtomicReference<State>                      state    = new AtomicReference<>();
+    private final AtomicBoolean                               active   = new AtomicBoolean(
+                                                                                           true);
 
     public Groo(String description) {
         this.description = description;
@@ -64,22 +59,28 @@ public class Groo implements GrooMBean {
         children.putIfAbsent(factory, new CopyOnWriteArrayList<NodeMBean>());
         factory.registerListeners();
         for (Node parent : parents) {
-            for (ObjectName name : factory.getMBeanServerConnection().queryNames(parent.getSourcePattern(),
-                                                                                 parent.getSourceQuery())) {
+            RegistrationFilter filter = parent.getFilter();
+            for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
+                                                                                 filter.getSourceQuery())) {
                 addChild(parent, name, factory);
             }
         }
     }
 
-    public void addParent(Node parent) {
-        RegistrationFilter filter = new RegistrationFilter(
-                                                           parent.getSourcePattern(),
-                                                           parent.getSourceQuery());
+    public void addParent(Node parent) throws IOException {
+        UUID handback = UUID.randomUUID();
+        filters.put(handback, parent);
         parents.add(parent);
         for (MbscFactory factory : children.keySet()) {
-            factory.register(filter);
+            factory.register(parent.getFilter(), handback);
         }
-        // TODO add existing children that match
+        RegistrationFilter filter = parent.getFilter();
+        for (MbscFactory factory : children.keySet()) {
+            for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
+                                                                                 filter.getSourceQuery())) {
+                addChild(parent, name, factory);
+            }
+        }
     }
 
     /* (non-Javadoc)
@@ -91,52 +92,13 @@ public class Groo implements GrooMBean {
     }
 
     /* (non-Javadoc)
-     * @see com.hellblazer.groo.GrooMBean#isActive()
-     */
-    @Override
-    public boolean isActive() {
-        return state.get().equals(State.STARTED);
-    }
-
-    /* (non-Javadoc)
      * @see com.hellblazer.groo.GrooMBean#stop()
      */
     @Override
     public void stop() throws IOException {
-        if (state.get().equals(State.STOPPED)) {
-            if (log.isLoggable(Level.FINEST)) {
-                log.finest(String.format("stop, Already: %s ", state));
-            }
+        if (!active.compareAndSet(true, false)) {
             return;
         }
-        if (!state.get().equals(State.STARTED)) {
-            throw new IllegalStateException("Can't stop when state is: "
-                                            + state);
-        }
-        state.set(State.SHUTTING_DOWN);
-        if (log.isLoggable(Level.FINEST)) {
-            log.finest(String.format("stop: %s", state));
-        }
-        try {
-            cleanup();
-        } finally {
-            state.set(State.STOPPED);
-            if (log.isLoggable(Level.FINEST)) {
-                log.finest(String.format("stop: %s", state));
-            }
-        }
-    }
-
-    private void addChild(Node node, ObjectName sourceName, MbscFactory factory) {
-        if (state.get().equals(State.STOPPED)
-            || state.get().equals(State.SHUTTING_DOWN)) {
-            return;
-        }
-        MbscNodeWrapper child = new MbscNodeWrapper(factory, sourceName);
-        node.addChild(child);
-    }
-
-    private void cleanup() {
         try {
             for (MbscFactory factory : children.keySet()) {
                 cleanup(factory);
@@ -149,6 +111,14 @@ public class Groo implements GrooMBean {
         }
     }
 
+    private void addChild(Node node, ObjectName sourceName, MbscFactory factory) {
+        if (!active.get()) {
+            return;
+        }
+        MbscNodeWrapper child = new MbscNodeWrapper(factory, sourceName);
+        node.addChild(child);
+    }
+
     private void cleanup(MbscFactory factory) {
         factory.deregisterListeners();
         for (Node parent : parents) {
@@ -159,13 +129,48 @@ public class Groo implements GrooMBean {
 
     }
 
+    private void removeChild(MbscFactory factory, ObjectName sourceName) {
+        for (NodeMBean child : children.get(factory)) {
+            if (sourceName.equals(child.getName())) {
+                children.get(factory).remove(child);
+                for (Node parent : parents) {
+                    parent.removeChild(child);
+                }
+                return;
+            }
+        }
+    }
+
+    private void update(MbscFactory factory) throws IOException {
+        for (Node parent : parents) {
+            RegistrationFilter filter = parent.getFilter();
+            final Set<ObjectName> found = factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
+                                                                                        filter.getSourceQuery());
+            List<NodeMBean> list = children.get(factory);
+            List<NodeMBean> removed = new ArrayList<>();
+            for (NodeMBean child : list) {
+                if (!found.contains(child.getName())) {
+                    removed.add(child);
+                }
+            }
+            for (ObjectName name : found) {
+                addChild(parent, name, factory);
+            }
+        }
+        if (log.isLoggable(Level.FINE)) {
+            log.fine("update, Groo updated");
+        }
+    }
+
     void handleJMXConnectionNotification(Notification notification,
                                          MbscFactory factory) {
-
+        if (!active.get()) {
+            return;
+        }
         final String nt = notification.getType();
         try {
             synchronized (this) {
-                if (!state.get().equals(State.STARTED)) {
+                if (!active.get()) {
                     return;
                 }
                 if (JMXConnectionNotification.OPENED.equals(nt)
@@ -186,95 +191,22 @@ public class Groo implements GrooMBean {
     }
 
     void handleMBeanServerNotification(MbscFactory factory,
-                                       MBeanServerNotification notification) {
+                                       MBeanServerNotification notification,
+                                       UUID handback) {
+        if (!active.get()) {
+            return;
+        }
         final String type = notification.getType();
         final ObjectName sourceName = notification.getMBeanName();
         if (MBeanServerNotification.REGISTRATION_NOTIFICATION.equals(type)) {
-            for (Node node : parents) {
-                if (isIncluded(sourceName, node.getSourcePattern(),
-                               node.getSourceQuery(), wrap(factory))) {
-                    addChild(node, sourceName, factory);
-                }
+            Node parent = filters.get(handback);
+            if (parent != null) {
+                addChild(parent, sourceName, factory);
             }
         } else if (MBeanServerNotification.UNREGISTRATION_NOTIFICATION.equals(type)) {
             if (children.containsKey(sourceName)) {
                 removeChild(factory, sourceName);
             }
-        }
-    }
-
-    private MBeanServer wrap(final MbscFactory factory) {
-        return new MbscWrapper() {
-            @Override
-            protected MBeanServerConnection getMBeanServerConnection()
-                                                                      throws IOException {
-                return factory.getMBeanServerConnection();
-            }
-        };
-    }
-
-    private boolean isIncluded(ObjectName sourceName, ObjectName sourcePattern,
-                               QueryExp sourceQuery, MBeanServer server) {
-        try {
-            if (sourcePattern != null && !sourcePattern.apply(sourceName)) {
-                return false;
-            }
-
-            // We can't simly do: if (sourceQuery == null) return true;
-            // we must verify that this CascadingAgent has the permissions
-            // to access the proxied MBean...
-            //
-            return server.queryNames(sourceName, sourceQuery).size() == 1;
-        } catch (Exception x) {
-            log.log(Level.FINE, "operation include, Unexpected exception ", x);
-            log.log(Level.FINEST, "include", x);
-        }
-        return false;
-    }
-
-    private void removeChild(MbscFactory factory, ObjectName sourceName) {
-        if (state.get().equals(State.STOPPED)
-            || state.get().equals(State.SHUTTING_DOWN)) {
-            return;
-        }
-
-        for (NodeMBean child : children.get(factory)) {
-            if (sourceName.equals(child.getName())) {
-                children.get(factory).remove(child);
-                for (Node parent : parents) {
-                    parent.removeChild(child);
-                }
-                return;
-            }
-        }
-    }
-
-    private void update(MbscFactory factory) throws IOException {
-        if (!state.get().equals(State.STARTED)) {
-            if (log.isLoggable(Level.FINE)) {
-                log.fine("update, Groo " + state);
-            }
-            return;
-        }
-        if (log.isLoggable(Level.FINE)) {
-            log.fine("update, Groo " + state);
-        }
-        for (Node parent : parents) {
-            final Set<ObjectName> found = factory.getMBeanServerConnection().queryNames(parent.getSourcePattern(),
-                                                                                        parent.getSourceQuery());
-            List<NodeMBean> list = children.get(factory);
-            List<NodeMBean> removed = new ArrayList<>();
-            for (NodeMBean child : list) {
-                if (!found.contains(child.getName())) {
-                    removed.add(child);
-                }
-            }
-            for (ObjectName name : found) {
-                addChild(parent, name, factory);
-            }
-        }
-        if (log.isLoggable(Level.FINE)) {
-            log.fine("update, Groo updated");
         }
     }
 }

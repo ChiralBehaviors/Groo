@@ -32,13 +32,6 @@ public interface GrooMBean {
     public String getDescription();
 
     /**
-     * Tests if the <CODE>Groo</CODE> is active.
-     * 
-     * @return <code>true</code> if the cascading agent is active.
-     */
-    public boolean isActive();
-
-    /**
      * Stops the aggregation.
      * <p>
      * When this method completes, the NodeMBeans that were aggregated by this

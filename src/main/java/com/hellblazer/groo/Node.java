@@ -46,19 +46,17 @@ import javax.management.ReflectionException;
  * 
  */
 public class Node implements NodeMBean, MBeanRegistration {
-    private final Set<NodeMBean> children = new CopyOnWriteArraySet<>();
-    private MBeanServer          mbs;
-    private ObjectName           name;
-    private final ObjectName     sourcePattern;
-    private final QueryExp       sourceQuery;
+    private final Set<NodeMBean>     children = new CopyOnWriteArraySet<>();
+    private MBeanServer              mbs;
+    private ObjectName               name;
+    private final RegistrationFilter filter;
 
     public Node() {
         this(null, null);
     }
 
     public Node(ObjectName sourcePattern, QueryExp sourceQuery) {
-        this.sourcePattern = sourcePattern;
-        this.sourceQuery = sourceQuery;
+        filter = new RegistrationFilter(sourcePattern, sourceQuery);
     }
 
     /**
@@ -299,6 +297,13 @@ public class Node implements NodeMBean, MBeanRegistration {
     }
 
     /**
+     * @return the filter
+     */
+    public RegistrationFilter getFilter() {
+        return filter;
+    }
+
+    /**
      * @return
      * @see javax.management.MBeanServer#getMBeanCount()
      */
@@ -382,20 +387,6 @@ public class Node implements NodeMBean, MBeanRegistration {
         }
         instances.addAll(mbs.queryMBeans(name, queryExpr));
         return instances;
-    }
-
-    /**
-     * @return the sourcePattern
-     */
-    public ObjectName getSourcePattern() {
-        return sourcePattern;
-    }
-
-    /**
-     * @return the sourceQuery
-     */
-    public QueryExp getSourceQuery() {
-        return sourceQuery;
     }
 
     /* (non-Javadoc)
