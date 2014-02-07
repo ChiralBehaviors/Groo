@@ -16,6 +16,8 @@
 
 package com.hellblazer.groo;
 
+import java.util.Map;
+
 import javax.management.MBeanServer;
 import javax.management.MBeanServerFactory;
 import javax.management.ObjectName;
@@ -77,7 +79,7 @@ public class GrooTest {
     }
 
     @Test
-    public void testNotifications() throws Exception {
+    public void testRegistrationNotifications() throws Exception {
         Groo groo = new Groo("Groo the wanderer");
         intermediateMbs.registerMBean(groo,
                                       ObjectName.getInstance("groo", "id", "1"));
@@ -96,5 +98,41 @@ public class GrooTest {
         leaf2Mbs.registerMBean(leaf2, leaf2Name);
         groo.addConnection(new LocalMbscFactory(groo, leaf2Mbs, "Leaf 2 MBS"));
         assertEquals(2, intermediate.getChildren().size());
+    }
+
+    @Test
+    public void testChildrenDelegation() throws Exception {
+        Groo groo = new Groo("Groo the wanderer");
+        intermediateMbs.registerMBean(groo,
+                                      ObjectName.getInstance("groo", "id", "1"));
+        groo.addParent(intermediate);
+        leaf1Mbs.registerMBean(leaf1, leaf1Name);
+        groo.addConnection(new LocalMbscFactory(groo, leaf1Mbs, "Leaf 1 MBS"));
+        leaf2Mbs.registerMBean(leaf2, leaf2Name);
+        groo.addConnection(new LocalMbscFactory(groo, leaf2Mbs, "Leaf 2 MBS"));
+        assertEquals(2, intermediate.getChildren().size());
+        Map<ObjectName, Object> result = intermediate.invoke(multiTest1, null,
+                                                             "operation1",
+                                                             null, null);
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
+            assertEquals("-1", entry.getValue());
+        }
+        assertNotNull(result.get(test1a));
+        assertNotNull(result.get(test1b));
+
+        result = intermediate.invoke(multiTest2,
+                                     null,
+                                     "operationFoo",
+                                     new Object[] { "testy" },
+                                     new String[] { String.class.getCanonicalName() });
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
+            assertEquals("testy", entry.getValue());
+        }
+        assertNotNull(result.get(test2a));
+        assertNotNull(result.get(test2b));
     }
 }
