@@ -59,6 +59,7 @@ public class Groo implements GrooMBean {
         children.putIfAbsent(factory, new CopyOnWriteArrayList<NodeMBean>());
         factory.registerListeners();
         for (Node parent : parents) {
+            register(parent, factory);
             RegistrationFilter filter = parent.getFilter();
             for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
                                                                                  filter.getSourceQuery())) {
@@ -68,11 +69,9 @@ public class Groo implements GrooMBean {
     }
 
     public void addParent(Node parent) throws IOException {
-        UUID handback = UUID.randomUUID();
-        filters.put(handback, parent);
         parents.add(parent);
         for (MbscFactory factory : children.keySet()) {
-            factory.register(parent.getFilter(), handback);
+            register(parent, factory);
         }
         RegistrationFilter filter = parent.getFilter();
         for (MbscFactory factory : children.keySet()) {
@@ -81,6 +80,12 @@ public class Groo implements GrooMBean {
                 addChild(parent, name, factory);
             }
         }
+    }
+
+    private void register(Node parent, MbscFactory factory) {
+        UUID handback = UUID.randomUUID();
+        filters.put(handback, parent);
+        factory.register(parent.getFilter(), handback);
     }
 
     /* (non-Javadoc)

@@ -69,8 +69,13 @@ public class RegistrationFilter implements NotificationFilter, Serializable {
             final MBeanServerNotification n = (MBeanServerNotification) notification;
             final ObjectName sourceName = n.getMBeanName();
             try {
-                return sourcePattern.apply(sourceName) && sourceQuery != null
-                       && sourceQuery.apply(sourceName);
+                if (sourcePattern.apply(sourceName)) {
+                    if (sourceQuery != null) {
+                        return sourceQuery.apply(sourceName);
+                    } else {
+                        return true;
+                    }
+                }
             } catch (BadStringOperationException | BadBinaryOpValueExpException
                     | BadAttributeValueExpException
                     | InvalidApplicationException e) {
@@ -79,5 +84,4 @@ public class RegistrationFilter implements NotificationFilter, Serializable {
         }
         return false;
     }
-
 }

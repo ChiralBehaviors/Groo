@@ -17,6 +17,7 @@
 package com.hellblazer.groo;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -348,6 +349,10 @@ public class Node implements NodeMBean, MBeanRegistration {
             }
         }
         return mbs.getMBeanInfo(name);
+    }
+
+    public Set<NodeMBean> getChildren() {
+        return Collections.unmodifiableSet(children);
     }
 
     /**
