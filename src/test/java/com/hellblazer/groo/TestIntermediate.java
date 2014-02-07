@@ -64,7 +64,7 @@ public class TestIntermediate {
         mbs1.registerMBean(new Test2(), test2a);
         mbs2.registerMBean(new Test2(), test2b);
         leaf1Name = ObjectName.getInstance("leaf-domain", "id", "1");
-        leaf2Name = ObjectName.getInstance("leaf-domain", "id", "1");
+        leaf2Name = ObjectName.getInstance("leaf-domain", "id", "2");
         intermediateName = ObjectName.getInstance("intermediate-domain", "id",
                                                   "1");
         leaf1 = new Node();

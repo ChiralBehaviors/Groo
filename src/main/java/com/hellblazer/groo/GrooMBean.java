@@ -18,10 +18,6 @@ package com.hellblazer.groo;
 
 import java.io.IOException;
 
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.ObjectName;
-import javax.management.QueryExp;
-
 /**
  * @author hhildebrand
  * 
@@ -36,66 +32,11 @@ public interface GrooMBean {
     public String getDescription();
 
     /**
-     * Returns the source {@link ObjectName} pattern filter that the source
-     * NodeMBean names must satisfy in order to be aggregated. This pattern is
-     * to be evaluated in the context of the source MBeanServer.
-     * 
-     * @return the source <tt>ObjectName</tt> pattern filter.
-     */
-    public ObjectName getPattern();
-
-    /**
-     * Returns the source {@link QueryExp} query filter that the source
-     * NodeMBean names must satisfy in order to be aggregated. This query is to
-     * be evaluated in the context of the source MBeanServer.
-     * 
-     * @return the source <tt>QueryExp</tt> query filter.
-     */
-    public QueryExp getQuery();
-
-    /**
      * Tests if the <CODE>Groo</CODE> is active.
      * 
      * @return <code>true</code> if the cascading agent is active.
      */
     public boolean isActive();
-
-    /**
-     * Starts this aggregating agent.
-     * <p>
-     * When this method successfully completes, the source NodeMBeans from the
-     * source (aggregated) MBeanServer which satisfy the source
-     * <tt>ObjectName</tt> {@link #getPattern pattern} filter and the source
-     * <tt>QueryExp</tt> {@link #getQuery query} filter will have been mounted
-     * in the target (aggregating) <tt>MBeanServer</tt> under the specified
-     * {@link #getTargetPath targetPath}. <br>
-     * After a successful invocation of <tt>start()</tt>, the <tt>Groo</tt>
-     * becomes active (see {@link GrooMBean#isActive isActive()}).
-     * </p>
-     * <p>
-     * <tt>Groos</tt> may be started and stopped multiple times, long as their
-     * underlying {@link MBeanServerConnectionFactory} is able to return valid
-     * <tt>MBeanServerConnections</tt>.
-     * </p>
-     * <p>
-     * If this method raises an exception, then no MBeans will have been
-     * cascaded as a result of this invocation.
-     * </p>
-     * 
-     * 
-     * @exception IOException
-     *                if the connection with the source <tt>MBeanServer</tt>
-     *                fails.
-     * @exception IllegalStateException
-     *                if this cascading agent is not stopped, or if the target
-     *                <tt>MBeanServer</tt> can't be obtained (e.g. the
-     *                <tt>Groo</tt> MBean was not registered).
-     * @exception InstanceAlreadyExistsException
-     *                if a name conflict is detected while starting.
-     * 
-     * @see CascadingAgentMBean#start
-     **/
-    public void start() throws IOException, InstanceAlreadyExistsException;
 
     /**
      * Stops the aggregation.

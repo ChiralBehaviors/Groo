@@ -42,15 +42,14 @@ import javax.management.ReflectionException;
  * @author hhildebrand
  * 
  */
-public class MBeanServerConnectionWrapper implements NodeMBean {
-    private final MBeanServerConnectionFactory connectionFactory;
-    private final ObjectName   source;
+public class MbscNodeWrapper implements NodeMBean {
+    private final MbscFactory connectionFactory;
+    private final ObjectName  source;
 
     /**
      * @param connectionFactory
      */
-    public MBeanServerConnectionWrapper(MBeanServerConnectionFactory connectionFactory,
-                                        ObjectName source) {
+    public MbscNodeWrapper(MbscFactory connectionFactory, ObjectName source) {
         this.connectionFactory = connectionFactory;
         this.source = source;
     }
@@ -134,6 +133,31 @@ public class MBeanServerConnectionWrapper implements NodeMBean {
                                                         IOException {
         getProxy().addNotificationListener(name, queryExpr, listener, filter,
                                            handback);
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        MbscNodeWrapper other = (MbscNodeWrapper) obj;
+        if (source == null) {
+            if (other.source != null) {
+                return false;
+            }
+        } else if (!source.equals(other.source)) {
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -259,7 +283,7 @@ public class MBeanServerConnectionWrapper implements NodeMBean {
      */
     @Override
     public ObjectName getName() {
-        return getProxy().getName();
+        return source;
     }
 
     /**
@@ -289,6 +313,24 @@ public class MBeanServerConnectionWrapper implements NodeMBean {
                                                                      throws InstanceNotFoundException,
                                                                      IOException {
         return getProxy().getObjectInstances(name, queryExpr);
+    }
+
+    /* (non-Javadoc)
+     * @see com.hellblazer.groo.NodeMBean#hasChild(javax.management.ObjectName)
+     */
+    public boolean hasChild(ObjectName nodeName) {
+        return false;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (source == null ? 0 : source.hashCode());
+        return result;
     }
 
     /**

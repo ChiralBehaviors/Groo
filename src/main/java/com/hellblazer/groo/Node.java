@@ -19,10 +19,9 @@ package com.hellblazer.groo;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import javax.management.Attribute;
 import javax.management.AttributeList;
@@ -47,9 +46,20 @@ import javax.management.ReflectionException;
  * 
  */
 public class Node implements NodeMBean, MBeanRegistration {
-    private final List<NodeMBean> children = new CopyOnWriteArrayList<>();
-    private MBeanServer           mbs;
-    private ObjectName            name;
+    private final Set<NodeMBean> children = new CopyOnWriteArraySet<>();
+    private MBeanServer          mbs;
+    private ObjectName           name;
+    private final ObjectName     sourcePattern;
+    private final QueryExp       sourceQuery;
+
+    public Node() {
+        this(null, null);
+    }
+
+    public Node(ObjectName sourcePattern, QueryExp sourceQuery) {
+        this.sourcePattern = sourcePattern;
+        this.sourceQuery = sourceQuery;
+    }
 
     /**
      * @param child
@@ -170,6 +180,31 @@ public class Node implements NodeMBean, MBeanRegistration {
         for (ObjectName n : names) {
             mbs.addNotificationListener(n, listener, filter, handback);
         }
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        Node other = (Node) obj;
+        if (name == null) {
+            if (other.name != null) {
+                return false;
+            }
+        } else if (!name.equals(other.name)) {
+            return false;
+        }
+        return true;
     }
 
     /* (non-Javadoc)
@@ -347,6 +382,31 @@ public class Node implements NodeMBean, MBeanRegistration {
         }
         instances.addAll(mbs.queryMBeans(name, queryExpr));
         return instances;
+    }
+
+    /**
+     * @return the sourcePattern
+     */
+    public ObjectName getSourcePattern() {
+        return sourcePattern;
+    }
+
+    /**
+     * @return the sourceQuery
+     */
+    public QueryExp getSourceQuery() {
+        return sourceQuery;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + (name == null ? 0 : name.hashCode());
+        return result;
     }
 
     /* (non-Javadoc)
