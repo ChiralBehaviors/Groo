@@ -26,10 +26,12 @@ abstract public class MbscFactory {
         }
     }
 
+    private final List<RegistrationFilter> builderFilters = new CopyOnWriteArrayList<>();
+    private final List<RegistrationFilter> filters        = new CopyOnWriteArrayList<>();
     private final Groo                     groo;
+    protected final NotificationListener   builderListener;
     protected final NotificationListener   connectListener;
     protected final NotificationListener   mbsListener;
-    private final List<RegistrationFilter> filters = new CopyOnWriteArrayList<>();
 
     /**
      * @param groo
@@ -38,6 +40,20 @@ abstract public class MbscFactory {
         this.groo = groo;
         connectListener = connectionListener();
         mbsListener = mbsListener();
+        builderListener = nbListener();
+    }
+
+    public void deregister(RegistrationFilter filter) {
+        filters.remove(filter);
+        try {
+            getMBeanServerConnection().removeNotificationListener(MBSDelegateObjectName,
+                                                                  mbsListener,
+                                                                  filter,
+                                                                  filter.getHandback());
+        } catch (InstanceNotFoundException | ListenerNotFoundException
+                | IOException e) {
+            // ignored
+        }
     }
 
     public void deregisterListeners() {
@@ -51,43 +67,51 @@ abstract public class MbscFactory {
         deregisterConnectListener();
     }
 
-    public void registerListeners() throws InstanceNotFoundException,
-                                   IOException {
-        for (RegistrationFilter filter : filters) {
-            getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
-                                                               mbsListener,
-                                                               filter, null);
-        }
-        registerConnectListener();
-    }
+    abstract public String getConnectionId() throws IOException;
 
-    public void register(RegistrationFilter filter, UUID handback) {
+    abstract public MBeanServerConnection getMBeanServerConnection()
+                                                                    throws IOException;
+
+    public void register(RegistrationFilter filter) {
         filters.add(filter);
         try {
             getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
                                                                mbsListener,
-                                                               filter, handback);
+                                                               filter,
+                                                               filter.getHandback());
         } catch (InstanceNotFoundException | IOException e) {
             // ignored
         }
     }
 
-    public void deregister(RegistrationFilter filter, UUID handback) {
-        filters.remove(filter);
+    public void registerBuilder(RegistrationFilter filter) {
+        builderFilters.add(filter);
         try {
-            getMBeanServerConnection().removeNotificationListener(MBSDelegateObjectName,
-                                                                  mbsListener,
-                                                                  filter,
-                                                                  handback);
-        } catch (InstanceNotFoundException | ListenerNotFoundException
-                | IOException e) {
+            getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
+                                                               nbListener(),
+                                                               filter,
+                                                               filter.getHandback());
+        } catch (InstanceNotFoundException | IOException e) {
             // ignored
         }
     }
 
-    abstract protected void deregisterConnectListener();
-
-    abstract protected void registerConnectListener();
+    public void registerListeners() throws InstanceNotFoundException,
+                                   IOException {
+        for (RegistrationFilter filter : filters) {
+            getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
+                                                               mbsListener,
+                                                               filter,
+                                                               filter.getHandback());
+        }
+        for (RegistrationFilter filter : builderFilters) {
+            getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
+                                                               builderListener,
+                                                               filter,
+                                                               filter.getHandback());
+        }
+        registerConnectListener();
+    }
 
     private NotificationListener connectionListener() {
         return new NotificationListener() {
@@ -114,9 +138,21 @@ abstract public class MbscFactory {
         };
     }
 
-    abstract public String getConnectionId() throws IOException;
+    private NotificationListener nbListener() {
+        return new NotificationListener() {
+            @Override
+            public void handleNotification(Notification notification,
+                                           Object handback) {
+                if (notification instanceof MBeanServerNotification) {
+                    groo.handleNetworkBuilderNotification((MBeanServerNotification) notification,
+                                                          (UUID) handback);
+                }
+            }
+        };
+    }
 
-    abstract public MBeanServerConnection getMBeanServerConnection()
-                                                                    throws IOException;
+    abstract protected void deregisterConnectListener();
+
+    abstract protected void registerConnectListener();
 
 }

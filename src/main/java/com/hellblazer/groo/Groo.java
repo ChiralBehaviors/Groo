@@ -29,6 +29,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.management.InstanceNotFoundException;
+import javax.management.MBeanRegistration;
+import javax.management.MBeanServer;
 import javax.management.MBeanServerNotification;
 import javax.management.Notification;
 import javax.management.ObjectName;
@@ -38,19 +40,28 @@ import javax.management.remote.JMXConnectionNotification;
  * @author hhildebrand
  * 
  */
-public class Groo implements GrooMBean {
+public class Groo implements GrooMBean, MBeanRegistration {
 
     private static final Logger                               log      = Logger.getLogger(Groo.class.getCanonicalName());
 
-    private final ConcurrentMap<MbscFactory, List<NodeMBean>> children = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, Node>                   filters  = new ConcurrentHashMap<>();
-    private final String                                      description;
-    private final List<Node>                                  parents  = new CopyOnWriteArrayList<>();
     private final AtomicBoolean                               active   = new AtomicBoolean(
                                                                                            true);
+    private final ConcurrentMap<UUID, NetworkBuilder>         builders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MbscFactory, List<NodeMBean>> children = new ConcurrentHashMap<>();
+    private final String                                      description;
+    private final ConcurrentMap<UUID, Node>                   filters  = new ConcurrentHashMap<>();
+    private MBeanServer                                       mbs;
+    private final List<Node>                                  parents  = new CopyOnWriteArrayList<>();
 
     public Groo(String description) {
         this.description = description;
+    }
+
+    public void addBuilder(NetworkBuilder builder) {
+        builders.put(builder.getFilter().getHandback(), builder);
+        for (MbscFactory factory : children.keySet()) {
+            factory.registerBuilder(builder.getFilter());
+        }
     }
 
     public void addConnection(MbscFactory factory)
@@ -59,33 +70,29 @@ public class Groo implements GrooMBean {
         children.putIfAbsent(factory, new CopyOnWriteArrayList<NodeMBean>());
         factory.registerListeners();
         for (Node parent : parents) {
-            register(parent, factory);
             RegistrationFilter filter = parent.getFilter();
             for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
                                                                                  filter.getSourceQuery())) {
                 addChild(parent, name, factory);
             }
+            factory.register(filter);
+        }
+        for (NetworkBuilder builder : builders.values()) {
+            factory.registerBuilder(builder.getFilter());
         }
     }
 
     public void addParent(Node parent) throws IOException {
         parents.add(parent);
-        for (MbscFactory factory : children.keySet()) {
-            register(parent, factory);
-        }
+        filters.put(parent.getFilter().getHandback(), parent);
         RegistrationFilter filter = parent.getFilter();
         for (MbscFactory factory : children.keySet()) {
             for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
                                                                                  filter.getSourceQuery())) {
                 addChild(parent, name, factory);
             }
+            factory.register(parent.getFilter());
         }
-    }
-
-    private void register(Node parent, MbscFactory factory) {
-        UUID handback = UUID.randomUUID();
-        filters.put(handback, parent);
-        factory.register(parent.getFilter(), handback);
     }
 
     /* (non-Javadoc)
@@ -94,6 +101,44 @@ public class Groo implements GrooMBean {
     @Override
     public String getDescription() {
         return description;
+    }
+
+    /**
+     * @return the mbs
+     */
+    public MBeanServer getMbs() {
+        return mbs;
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#postDeregister()
+     */
+    @Override
+    public void postDeregister() {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#postRegister(java.lang.Boolean)
+     */
+    @Override
+    public void postRegister(Boolean registrationDone) {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#preDeregister()
+     */
+    @Override
+    public void preDeregister() throws Exception {
+    }
+
+    /* (non-Javadoc)
+     * @see javax.management.MBeanRegistration#preRegister(javax.management.MBeanServer, javax.management.ObjectName)
+     */
+    @Override
+    public ObjectName preRegister(MBeanServer server, ObjectName name)
+                                                                      throws Exception {
+        mbs = server;
+        return name;
     }
 
     /* (non-Javadoc)
@@ -212,6 +257,21 @@ public class Groo implements GrooMBean {
             if (children.containsKey(sourceName)) {
                 removeChild(factory, sourceName);
             }
+        }
+    }
+
+    /**
+     * @param notification
+     * @param handback
+     */
+    void handleNetworkBuilderNotification(MBeanServerNotification notification,
+                                          UUID handback) {
+        if (!MBeanServerNotification.REGISTRATION_NOTIFICATION.equals(notification.getType())) {
+            return;
+        }
+        NetworkBuilder builder = builders.get(handback);
+        if (builder != null) {
+            builder.addParent(notification.getMBeanName());
         }
     }
 }

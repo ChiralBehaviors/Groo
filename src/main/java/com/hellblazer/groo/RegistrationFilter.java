@@ -17,6 +17,7 @@
 package com.hellblazer.groo;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 import javax.management.BadAttributeValueExpException;
 import javax.management.BadBinaryOpValueExpException;
@@ -35,15 +36,24 @@ import javax.management.QueryExp;
 public class RegistrationFilter implements NotificationFilter, Serializable {
     private static final long serialVersionUID = 1L;
 
+    private UUID              handback;
     private ObjectName        sourcePattern;
     private QueryExp          sourceQuery;
 
     public RegistrationFilter() {
     }
 
-    public RegistrationFilter(ObjectName sourcePattern, QueryExp sourceQueury) {
+    public RegistrationFilter(ObjectName sourcePattern, QueryExp sourceQuery) {
         this.sourcePattern = sourcePattern;
-        sourceQuery = sourceQueury;
+        this.sourceQuery = sourceQuery;
+        this.handback = UUID.randomUUID();
+    }
+
+    /**
+     * @return the handback
+     */
+    public UUID getHandback() {
+        return handback;
     }
 
     /**
