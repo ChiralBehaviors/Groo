@@ -37,11 +37,11 @@ import org.junit.Test;
 public class TestLeaf {
     private NodeMBean  leaf;
     private ObjectName leafName;
-    private ObjectName test1a;
-    private ObjectName test2a;
     private ObjectName multiTest1;
     private ObjectName multiTest2;
+    private ObjectName test1a;
     private ObjectName test1b;
+    private ObjectName test2a;
     private ObjectName test2b;
 
     @Before

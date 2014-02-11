@@ -101,7 +101,7 @@ public interface NodeMBean {
     public abstract ObjectName getName();
 
     public abstract ObjectInstance getObjectInstance(ObjectName name)
-                                                          throws InstanceNotFoundException;
+                                                                     throws InstanceNotFoundException;
 
     public Set<ObjectInstance> getObjectInstances(ObjectName name,
                                                   QueryExp queryExpr)

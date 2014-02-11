@@ -34,6 +34,7 @@ import javax.management.MBeanServer;
 import javax.management.MBeanServerNotification;
 import javax.management.Notification;
 import javax.management.ObjectName;
+import javax.management.QueryExp;
 import javax.management.remote.JMXConnectionNotification;
 
 /**
@@ -57,9 +58,11 @@ public class Groo implements GrooMBean, MBeanRegistration {
         this.description = description;
     }
 
-    public void addBuilder(NetworkBuilder builder) {
+    public void addBuilder(NetworkBuilder builder) throws IOException {
+        log.info(String.format("Adding builder: %s on: %s", builder, this));
         builders.put(builder.getFilter().getHandback(), builder);
         for (MbscFactory factory : children.keySet()) {
+            update(factory, builder);
             factory.registerBuilder(builder.getFilter());
         }
     }
@@ -67,30 +70,33 @@ public class Groo implements GrooMBean, MBeanRegistration {
     public void addConnection(MbscFactory factory)
                                                   throws InstanceNotFoundException,
                                                   IOException {
+        log.info(String.format("Adding connection factory: %s for: %s",
+                               factory, this));
         children.putIfAbsent(factory, new CopyOnWriteArrayList<NodeMBean>());
         factory.registerListeners();
         for (Node parent : parents) {
-            RegistrationFilter filter = parent.getFilter();
-            for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
-                                                                                 filter.getSourceQuery())) {
-                addChild(parent, name, factory);
-            }
-            factory.register(filter);
+            update(factory, parent);
+            factory.register(parent.getFilter());
         }
         for (NetworkBuilder builder : builders.values()) {
+            update(factory, builder);
             factory.registerBuilder(builder.getFilter());
         }
     }
 
+    public void addNetworkBuilder(ObjectName networkPattern,
+                                  QueryExp networkQuery,
+                                  String[] parentProperties) throws IOException {
+        addBuilder(new NetworkBuilder(this, networkPattern, networkQuery,
+                                      parentProperties));
+    }
+
     public void addParent(Node parent) throws IOException {
+        log.info(String.format("Adding parent: %s on: %s", parent, this));
         parents.add(parent);
         filters.put(parent.getFilter().getHandback(), parent);
-        RegistrationFilter filter = parent.getFilter();
         for (MbscFactory factory : children.keySet()) {
-            for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
-                                                                                 filter.getSourceQuery())) {
-                addChild(parent, name, factory);
-            }
+            update(factory, parent);
             factory.register(parent.getFilter());
         }
     }
@@ -108,6 +114,10 @@ public class Groo implements GrooMBean, MBeanRegistration {
      */
     public MBeanServer getMbs() {
         return mbs;
+    }
+
+    public List<Node> getParents() {
+        return new ArrayList<Node>(parents);
     }
 
     /* (non-Javadoc)
@@ -161,12 +171,23 @@ public class Groo implements GrooMBean, MBeanRegistration {
         }
     }
 
-    private void addChild(Node node, ObjectName sourceName, MbscFactory factory) {
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "Groo [active=" + active + ", " + description + "]";
+    }
+
+    private void addChild(Node parent, ObjectName childName, MbscFactory factory) {
         if (!active.get()) {
             return;
         }
-        MbscNodeWrapper child = new MbscNodeWrapper(factory, sourceName);
-        node.addChild(child);
+        MbscNodeWrapper child = new MbscNodeWrapper(factory, childName);
+        log.info(String.format("Adding child: %s to parent: %s on: %s", child,
+                               parent, factory));
+        children.get(factory).add(child);
+        parent.addChild(child);
     }
 
     private void cleanup(MbscFactory factory) {
@@ -180,18 +201,25 @@ public class Groo implements GrooMBean, MBeanRegistration {
     }
 
     private void removeChild(MbscFactory factory, ObjectName sourceName) {
+        NodeMBean n = null;
         for (NodeMBean child : children.get(factory)) {
             if (sourceName.equals(child.getName())) {
-                children.get(factory).remove(child);
-                for (Node parent : parents) {
-                    parent.removeChild(child);
-                }
-                return;
+                n = child;
+                break;
             }
         }
+        if (n == null) {
+            return;
+        }
+        children.get(factory).remove(n);
+        for (Node parent : parents) {
+            parent.removeChild(n);
+        }
+        return;
     }
 
     private void update(MbscFactory factory) throws IOException {
+        log.info(String.format("Updating factory: %s", factory));
         for (Node parent : parents) {
             RegistrationFilter filter = parent.getFilter();
             final Set<ObjectName> found = factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
@@ -209,6 +237,37 @@ public class Groo implements GrooMBean, MBeanRegistration {
         }
         if (log.isLoggable(Level.FINE)) {
             log.fine("update, Groo updated");
+        }
+    }
+
+    /**
+     * @param factory
+     * @param builder
+     * @throws IOException
+     */
+    private void update(MbscFactory factory, NetworkBuilder builder)
+                                                                    throws IOException {
+        RegistrationFilter filter = builder.getFilter();
+        log.info(String.format("Querying for builder: %s on: %s for: %s",
+                               builder, factory, this));
+        for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
+                                                                             filter.getSourceQuery())) {
+            builder.addParent(name);
+        }
+    }
+
+    /**
+     * @param factory
+     * @param parent
+     * @throws IOException
+     */
+    private void update(MbscFactory factory, Node parent) throws IOException {
+        RegistrationFilter filter = parent.getFilter();
+        log.info(String.format("Querying for node: %s filter: %s on: %s for: %s",
+                               parent, filter, factory, this));
+        for (ObjectName name : factory.getMBeanServerConnection().queryNames(filter.getSourcePattern(),
+                                                                             filter.getSourceQuery())) {
+            addChild(parent, name, factory);
         }
     }
 

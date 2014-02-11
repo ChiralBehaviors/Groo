@@ -692,6 +692,14 @@ public class MbscNodeWrapper implements NodeMBean {
         return getProxy().setAttributes(name, queryExpr, attributes);
     }
 
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "MbscNodeWrapper [source=" + source + "]";
+    }
+
     private MBeanServerConnection getConnection() {
         try {
             return connectionFactory.getMBeanServerConnection();

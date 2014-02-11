@@ -17,11 +17,10 @@
 package com.hellblazer.groo;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,13 +38,11 @@ import javax.management.QueryExp;
  */
 public class NetworkBuilder {
 
-    private final static Logger                   log     = Logger.getLogger(NetworkBuilder.class.getCanonicalName());
-    private final Map<String, String>             childSearchProperties;
-    private final QueryExp                        childSearchQuery;
-    private final RegistrationFilter              filter;
-    private Groo                                  groo;
-    private final ConcurrentMap<ObjectName, Node> managed = new ConcurrentHashMap<ObjectName, Node>();
-    private final List<String>                    parentProperties;
+    private final static Logger      log     = Logger.getLogger(NetworkBuilder.class.getCanonicalName());
+    private final RegistrationFilter filter;
+    private final Groo               groo;
+    private final Set<ObjectName>    managed = new CopyOnWriteArraySet<>();
+    private final String[]           parentProperties;
 
     /**
      * @param groo
@@ -53,14 +50,11 @@ public class NetworkBuilder {
      * @param networkQuery
      * @param childProperty
      */
-    public NetworkBuilder(ObjectName networkPattern, QueryExp networkQuery,
-                          List<String> parentProperties,
-                          Map<String, String> childSearchProperties,
-                          QueryExp childSearchQuery) {
-        filter = new RegistrationFilter(networkPattern, childSearchQuery);
+    public NetworkBuilder(Groo groo, ObjectName networkPattern,
+                          QueryExp networkQuery, String[] parentProperties) {
+        this.groo = groo;
+        filter = new RegistrationFilter(networkPattern, networkQuery);
         this.parentProperties = parentProperties;
-        this.childSearchProperties = childSearchProperties;
-        this.childSearchQuery = childSearchQuery;
     }
 
     /**
@@ -71,23 +65,14 @@ public class NetworkBuilder {
         if (nodeName == null) {
             return;
         }
-
-        ObjectName searchName = getSearchName(sourceName);
-        if (searchName == null) {
+        Node parent = new Node(filter.getSourcePattern(),
+                               filter.getSourceQuery());
+        if (!managed.add(nodeName)) {
+            log.info(String.format("Already tracked %s on: %s", sourceName,
+                                   this));
             return;
         }
-        Node parent = new Node(searchName, childSearchQuery);
-        if (managed.putIfAbsent(nodeName, parent) != null) {
-            return;
-        }
-        try {
-            groo.addParent(parent);
-        } catch (IOException e) {
-            log.log(Level.INFO,
-                    String.format(String.format("Error adding parent: %s",
-                                                nodeName)), e);
-            return;
-        }
+        log.info(String.format("Adding %s on: %s", sourceName, this));
 
         MBeanServer mbs = groo.getMbs();
         if (mbs != null) {
@@ -100,6 +85,15 @@ public class NetworkBuilder {
                                       nodeName), e);
             }
         }
+
+        try {
+            groo.addParent(parent);
+        } catch (IOException e) {
+            log.log(Level.INFO,
+                    String.format(String.format("Error adding parent: %s",
+                                                nodeName)), e);
+            return;
+        }
     }
 
     /**
@@ -109,12 +103,13 @@ public class NetworkBuilder {
         return filter;
     }
 
-    /**
-     * @param groo
-     *            the groo to set
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
      */
-    public void setGroo(Groo groo) {
-        this.groo = groo;
+    @Override
+    public String toString() {
+        return "NetworkBuilder [" + filter + ","
+               + Arrays.toString(parentProperties) + "]";
     }
 
     private ObjectName getParentName(ObjectName sourceName) {
@@ -128,23 +123,6 @@ public class NetworkBuilder {
             log.log(Level.SEVERE,
                     String.format("error in creating parent node name from: %s.  parent properties: %s",
                                   sourceName, parentProperties), e);
-            return null;
-        }
-    }
-
-    private ObjectName getSearchName(ObjectName sourceName) {
-        Hashtable<String, String> properties = new Hashtable<String, String>(
-                                                                             sourceName.getKeyPropertyList());
-        for (Map.Entry<String, String> entry : childSearchProperties.entrySet()) {
-            properties.put(entry.getKey(), entry.getValue());
-        }
-        try {
-            return new ObjectName(sourceName.getDomain(), properties);
-        } catch (MalformedObjectNameException e) {
-            log.log(Level.SEVERE,
-                    String.format(String.format("error in creating search name from: %s.  Child search properties: %s",
-                                                sourceName,
-                                                childSearchProperties)), e);
             return null;
         }
     }

@@ -46,7 +46,7 @@ public class RegistrationFilter implements NotificationFilter, Serializable {
     public RegistrationFilter(ObjectName sourcePattern, QueryExp sourceQuery) {
         this.sourcePattern = sourcePattern;
         this.sourceQuery = sourceQuery;
-        this.handback = UUID.randomUUID();
+        handback = UUID.randomUUID();
     }
 
     /**
@@ -93,5 +93,13 @@ public class RegistrationFilter implements NotificationFilter, Serializable {
             }
         }
         return false;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "[" + handback + ", " + sourcePattern + ", " + sourceQuery + "]";
     }
 }

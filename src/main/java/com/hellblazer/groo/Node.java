@@ -48,9 +48,9 @@ import javax.management.ReflectionException;
  */
 public class Node implements NodeMBean, MBeanRegistration {
     private final Set<NodeMBean>     children = new CopyOnWriteArraySet<>();
+    private final RegistrationFilter filter;
     private MBeanServer              mbs;
     private ObjectName               name;
-    private final RegistrationFilter filter;
 
     public Node() {
         this(null, null);
@@ -297,6 +297,10 @@ public class Node implements NodeMBean, MBeanRegistration {
         return mbs.getAttributes(name, attributes);
     }
 
+    public Set<NodeMBean> getChildren() {
+        return Collections.unmodifiableSet(children);
+    }
+
     /**
      * @return the filter
      */
@@ -349,10 +353,6 @@ public class Node implements NodeMBean, MBeanRegistration {
             }
         }
         return mbs.getMBeanInfo(name);
-    }
-
-    public Set<NodeMBean> getChildren() {
-        return Collections.unmodifiableSet(children);
     }
 
     /**
@@ -899,5 +899,13 @@ public class Node implements NodeMBean, MBeanRegistration {
             results.put(instance, mbs.setAttributes(instance, attributes));
         }
         return results;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "Node [" + name + ", " + filter + "]";
     }
 }

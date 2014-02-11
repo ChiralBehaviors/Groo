@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.ListenerNotFoundException;
@@ -16,6 +18,8 @@ import javax.management.ObjectName;
 
 abstract public class MbscFactory {
     public final static ObjectName         MBSDelegateObjectName;
+
+    private static final Logger            log            = Logger.getLogger(MbscFactory.class.getCanonicalName());
 
     static {
         try {
@@ -44,6 +48,7 @@ abstract public class MbscFactory {
     }
 
     public void deregister(RegistrationFilter filter) {
+        log.info(String.format("Deregistering filter: %s on :%s", filter, this));
         filters.remove(filter);
         try {
             getMBeanServerConnection().removeNotificationListener(MBSDelegateObjectName,
@@ -52,7 +57,9 @@ abstract public class MbscFactory {
                                                                   filter.getHandback());
         } catch (InstanceNotFoundException | ListenerNotFoundException
                 | IOException e) {
-            // ignored
+            log.log(Level.FINE,
+                    String.format("error deregistering filter: %s on :%s",
+                                  filter, this), e);
         }
     }
 
@@ -62,7 +69,9 @@ abstract public class MbscFactory {
                                                                   mbsListener);
         } catch (InstanceNotFoundException | ListenerNotFoundException
                 | IOException e) {
-            // ignored
+            log.log(Level.FINE,
+                    String.format("error deregistering mbs listener on :%s",
+                                  this), e);
         }
         deregisterConnectListener();
     }
@@ -74,43 +83,67 @@ abstract public class MbscFactory {
 
     public void register(RegistrationFilter filter) {
         filters.add(filter);
+        log.info(String.format("registering filter %s on: %s", filter, this));
         try {
             getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
                                                                mbsListener,
                                                                filter,
                                                                filter.getHandback());
         } catch (InstanceNotFoundException | IOException e) {
-            // ignored
+            log.log(Level.FINE,
+                    String.format("error registering filter: %s on :%s",
+                                  filter, this), e);
         }
     }
 
     public void registerBuilder(RegistrationFilter filter) {
         builderFilters.add(filter);
+        log.info(String.format("registering builder filter %s on: %s", filter,
+                               this));
         try {
             getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
-                                                               nbListener(),
+                                                               builderListener,
                                                                filter,
                                                                filter.getHandback());
         } catch (InstanceNotFoundException | IOException e) {
-            // ignored
+            log.log(Level.FINE,
+                    String.format("error registering builder filter: %s on :%s",
+                                  filter, this), e);
         }
     }
 
     public void registerListeners() throws InstanceNotFoundException,
                                    IOException {
         for (RegistrationFilter filter : filters) {
+            log.info(String.format("Registering filter: %s on :%s", filter,
+                                   filter, this));
             getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
                                                                mbsListener,
                                                                filter,
                                                                filter.getHandback());
         }
         for (RegistrationFilter filter : builderFilters) {
+            log.info(String.format("Registering builder filter: %s on :%s",
+                                   filter, filter, this));
             getMBeanServerConnection().addNotificationListener(MBSDelegateObjectName,
                                                                builderListener,
                                                                filter,
                                                                filter.getHandback());
         }
         registerConnectListener();
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        try {
+            return String.format("%s [%s]", getClass().getSimpleName(),
+                                 getConnectionId());
+        } catch (IOException e) {
+            return String.format("%s [UNKNOWN]", getClass().getSimpleName());
+        }
     }
 
     private NotificationListener connectionListener() {

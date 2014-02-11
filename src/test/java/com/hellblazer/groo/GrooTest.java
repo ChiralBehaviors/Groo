@@ -16,6 +16,10 @@
 
 package com.hellblazer.groo;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Map;
 
 import javax.management.MBeanServer;
@@ -28,28 +32,26 @@ import org.junit.Test;
 import com.hellblazer.utils.Condition;
 import com.hellblazer.utils.Utils;
 
-import static org.junit.Assert.*;
-
 /**
  * @author hhildebrand
  * 
  */
 public class GrooTest {
     private Node        intermediate;
-    private NodeMBean   leaf1;
-    private NodeMBean   leaf2;
-    private ObjectName  leaf1Name;
-    private ObjectName  leaf2Name;
+    private MBeanServer intermediateMbs;
     private ObjectName  intermediateName;
-    private ObjectName  test1a;
-    private ObjectName  test2a;
+    private NodeMBean   leaf1;
+    private MBeanServer leaf1Mbs;
+    private ObjectName  leaf1Name;
+    private NodeMBean   leaf2;
+    private MBeanServer leaf2Mbs;
+    private ObjectName  leaf2Name;
     private ObjectName  multiTest1;
     private ObjectName  multiTest2;
+    private ObjectName  test1a;
     private ObjectName  test1b;
+    private ObjectName  test2a;
     private ObjectName  test2b;
-    private MBeanServer intermediateMbs;
-    private MBeanServer leaf1Mbs;
-    private MBeanServer leaf2Mbs;
 
     @Before
     public void initialize() throws Exception {
@@ -76,28 +78,6 @@ public class GrooTest {
                                 ObjectName.getInstance("leaf-domain", "id", "*"),
                                 null);
         intermediateMbs.registerMBean(intermediate, intermediateName);
-    }
-
-    @Test
-    public void testRegistrationNotifications() throws Exception {
-        Groo groo = new Groo("Groo the wanderer");
-        intermediateMbs.registerMBean(groo,
-                                      ObjectName.getInstance("groo", "id", "1"));
-        groo.addParent(intermediate);
-        assertEquals(0, intermediate.getChildren().size());
-        groo.addConnection(new LocalMbscFactory(groo, leaf1Mbs, "Leaf 1 MBS"));
-        assertEquals(0, intermediate.getChildren().size());
-        leaf1Mbs.registerMBean(leaf1, leaf1Name);
-        Utils.waitForCondition(1000, new Condition() {
-            @Override
-            public boolean isTrue() {
-                return intermediate.getChildren().size() > 0;
-            }
-        });
-        assertEquals(1, intermediate.getChildren().size());
-        leaf2Mbs.registerMBean(leaf2, leaf2Name);
-        groo.addConnection(new LocalMbscFactory(groo, leaf2Mbs, "Leaf 2 MBS"));
-        assertEquals(2, intermediate.getChildren().size());
     }
 
     @Test
@@ -134,5 +114,27 @@ public class GrooTest {
         }
         assertNotNull(result.get(test2a));
         assertNotNull(result.get(test2b));
+    }
+
+    @Test
+    public void testRegistrationNotifications() throws Exception {
+        Groo groo = new Groo("Groo the wanderer");
+        intermediateMbs.registerMBean(groo,
+                                      ObjectName.getInstance("groo", "id", "1"));
+        groo.addParent(intermediate);
+        assertEquals(0, intermediate.getChildren().size());
+        groo.addConnection(new LocalMbscFactory(groo, leaf1Mbs, "Leaf 1 MBS"));
+        assertEquals(0, intermediate.getChildren().size());
+        leaf1Mbs.registerMBean(leaf1, leaf1Name);
+        assertTrue(Utils.waitForCondition(1000, new Condition() {
+            @Override
+            public boolean isTrue() {
+                return intermediate.getChildren().size() > 0;
+            }
+        }));
+        assertEquals(1, intermediate.getChildren().size());
+        leaf2Mbs.registerMBean(leaf2, leaf2Name);
+        groo.addConnection(new LocalMbscFactory(groo, leaf2Mbs, "Leaf 2 MBS"));
+        assertEquals(2, intermediate.getChildren().size());
     }
 }

@@ -18,6 +18,7 @@ package com.hellblazer.groo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -44,24 +45,30 @@ import com.hellblazer.utils.jmx.RmiJmxServerFactory;
  */
 public class RemoteTest {
     private Node               intermediate;
-    private NodeMBean          leaf1;
-    private NodeMBean          leaf2;
-    private ObjectName         leaf1Name;
-    private ObjectName         leaf2Name;
+    private MBeanServer        intermediateMbs;
     private ObjectName         intermediateName;
-    private ObjectName         test1a;
-    private ObjectName         test2a;
+    private NodeMBean          leaf1;
+    private JMXConnector       leaf1Connector;
+    private MBeanServer        leaf1Mbs;
+    private ObjectName         leaf1Name;
+    private JMXConnectorServer leaf1Server;
+    private NodeMBean          leaf2;
+    private JMXConnector       leaf2Connector;
+    private MBeanServer        leaf2Mbs;
+    private ObjectName         leaf2Name;
+    private JMXConnectorServer leaf2Server;
     private ObjectName         multiTest1;
     private ObjectName         multiTest2;
+    private ObjectName         test1a;
     private ObjectName         test1b;
+    private ObjectName         test2a;
     private ObjectName         test2b;
-    private MBeanServer        intermediateMbs;
-    private MBeanServer        leaf1Mbs;
-    private MBeanServer        leaf2Mbs;
-    private JMXConnector       leaf1Connector;
-    private JMXConnector       leaf2Connector;
-    private JMXConnectorServer leaf2Server;
-    private JMXConnectorServer leaf1Server;
+
+    @After
+    public void cleanUp() throws IOException {
+        leaf1Server.stop();
+        leaf2Server.stop();
+    }
 
     @Before
     public void initialize() throws Exception {
@@ -100,36 +107,6 @@ public class RemoteTest {
         leaf2Connector = leaf2Server.toJMXConnector(new HashMap<String, Object>());
     }
 
-    @After
-    public void cleanUp() throws IOException {
-        leaf1Server.stop();
-        leaf2Server.stop();
-    }
-
-    @Test
-    public void testRegistrationNotifications() throws Exception {
-        Groo groo = new Groo("Groo the wanderer");
-        intermediateMbs.registerMBean(groo,
-                                      ObjectName.getInstance("groo", "id", "1"));
-        groo.addParent(intermediate);
-        assertEquals(0, intermediate.getChildren().size());
-        leaf1Connector.connect();
-        groo.addConnection(new BasicMbscFactory(groo, leaf1Connector, null));
-        assertEquals(0, intermediate.getChildren().size());
-        leaf1Mbs.registerMBean(leaf1, leaf1Name);
-        Utils.waitForCondition(1000, new Condition() {
-            @Override
-            public boolean isTrue() {
-                return intermediate.getChildren().size() > 0;
-            }
-        });
-        assertEquals(1, intermediate.getChildren().size());
-        leaf2Mbs.registerMBean(leaf2, leaf2Name);
-        leaf2Connector.connect();
-        groo.addConnection(new BasicMbscFactory(groo, leaf2Connector, null));
-        assertEquals(2, intermediate.getChildren().size());
-    }
-
     @Test
     public void testChildrenDelegation() throws Exception {
         Groo groo = new Groo("Groo the wanderer");
@@ -166,6 +143,30 @@ public class RemoteTest {
         }
         assertNotNull(result.get(test2a));
         assertNotNull(result.get(test2b));
+    }
+
+    @Test
+    public void testRegistrationNotifications() throws Exception {
+        Groo groo = new Groo("Groo the wanderer");
+        intermediateMbs.registerMBean(groo,
+                                      ObjectName.getInstance("groo", "id", "1"));
+        groo.addParent(intermediate);
+        assertEquals(0, intermediate.getChildren().size());
+        leaf1Connector.connect();
+        groo.addConnection(new BasicMbscFactory(groo, leaf1Connector, null));
+        assertEquals(0, intermediate.getChildren().size());
+        leaf1Mbs.registerMBean(leaf1, leaf1Name);
+        assertTrue(Utils.waitForCondition(1000, new Condition() {
+            @Override
+            public boolean isTrue() {
+                return intermediate.getChildren().size() > 0;
+            }
+        }));
+        assertEquals(1, intermediate.getChildren().size());
+        leaf2Mbs.registerMBean(leaf2, leaf2Name);
+        leaf2Connector.connect();
+        groo.addConnection(new BasicMbscFactory(groo, leaf2Connector, null));
+        assertEquals(2, intermediate.getChildren().size());
     }
 
 }

@@ -24,32 +24,7 @@ import java.io.IOException;
  */
 public interface GrooMBean {
 
-    /**
-     * A human readable string describing this aggregating agent.
-     * 
-     * @return A human readable string describing this aggregating agent.
-     **/
     public String getDescription();
 
-    /**
-     * Stops the aggregation.
-     * <p>
-     * When this method completes, the NodeMBeans that were aggregated by this
-     * <tt>Groo</tt> will no longer be mounted in the aggregating
-     * <tt>MBeanServer</tt>. After a successful invocation of <tt>stop()</tt>,
-     * the <tt>Groo</tt> becomes inactive (see {@link #isActive isActive()}).
-     * </p>
-     * 
-     * @exception IOException
-     *                if cascading couldn't be stopped.
-     * @exception IllegalStateException
-     *                if this cascading agent is not in a state where it can be
-     *                stopped (for instance, a start operation is still in
-     *                progress). The exact cases where
-     *                <tt>IllegalStateException</tt> can be thrown is
-     *                implementation dependent.
-     * @see #start
-     * @see #isActive
-     */
     public void stop() throws IOException;
 }

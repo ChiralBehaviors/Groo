@@ -36,16 +36,16 @@ import org.junit.Test;
  */
 public class TestIntermediate {
     private Node       intermediate;
-    private NodeMBean  leaf1;
-    private NodeMBean  leaf2;
-    private ObjectName leaf1Name;
-    private ObjectName leaf2Name;
     private ObjectName intermediateName;
-    private ObjectName test1a;
-    private ObjectName test2a;
+    private NodeMBean  leaf1;
+    private ObjectName leaf1Name;
+    private NodeMBean  leaf2;
+    private ObjectName leaf2Name;
     private ObjectName multiTest1;
     private ObjectName multiTest2;
+    private ObjectName test1a;
     private ObjectName test1b;
+    private ObjectName test2a;
     private ObjectName test2b;
 
     @Before
