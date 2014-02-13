@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.ListenerNotFoundException;
@@ -16,10 +14,13 @@ import javax.management.Notification;
 import javax.management.NotificationListener;
 import javax.management.ObjectName;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 abstract public class MbscFactory {
     public final static ObjectName         MBSDelegateObjectName;
 
-    private static final Logger            log            = Logger.getLogger(MbscFactory.class.getCanonicalName());
+    private static final Logger            log            = LoggerFactory.getLogger(MbscFactory.class);
 
     static {
         try {
@@ -57,9 +58,8 @@ abstract public class MbscFactory {
                                                                   filter.getHandback());
         } catch (InstanceNotFoundException | ListenerNotFoundException
                 | IOException e) {
-            log.log(Level.FINE,
-                    String.format("error deregistering filter: %s on :%s",
-                                  filter, this), e);
+            log.debug(String.format("error deregistering filter: %s on :%s",
+                                    filter, this), e);
         }
     }
 
@@ -69,9 +69,8 @@ abstract public class MbscFactory {
                                                                   mbsListener);
         } catch (InstanceNotFoundException | ListenerNotFoundException
                 | IOException e) {
-            log.log(Level.FINE,
-                    String.format("error deregistering mbs listener on :%s",
-                                  this), e);
+            log.debug(String.format("error deregistering mbs listener on :%s",
+                                    this), e);
         }
         deregisterConnectListener();
     }
@@ -90,9 +89,8 @@ abstract public class MbscFactory {
                                                                filter,
                                                                filter.getHandback());
         } catch (InstanceNotFoundException | IOException e) {
-            log.log(Level.FINE,
-                    String.format("error registering filter: %s on :%s",
-                                  filter, this), e);
+            log.debug(String.format("error registering filter: %s on :%s",
+                                    filter, this), e);
         }
     }
 
@@ -106,9 +104,8 @@ abstract public class MbscFactory {
                                                                filter,
                                                                filter.getHandback());
         } catch (InstanceNotFoundException | IOException e) {
-            log.log(Level.FINE,
-                    String.format("error registering builder filter: %s on :%s",
-                                  filter, this), e);
+            log.debug(String.format("error registering builder filter: %s on :%s",
+                                    filter, this), e);
         }
     }
 

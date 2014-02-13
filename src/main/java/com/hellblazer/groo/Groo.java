@@ -25,8 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanRegistration;
@@ -37,13 +35,16 @@ import javax.management.ObjectName;
 import javax.management.QueryExp;
 import javax.management.remote.JMXConnectionNotification;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author hhildebrand
  * 
  */
 public class Groo implements GrooMBean, MBeanRegistration {
 
-    private static final Logger                               log      = Logger.getLogger(Groo.class.getCanonicalName());
+    private static final Logger                               log      = LoggerFactory.getLogger(Groo.class);
 
     private final AtomicBoolean                               active   = new AtomicBoolean(
                                                                                            true);
@@ -165,9 +166,9 @@ public class Groo implements GrooMBean, MBeanRegistration {
             }
             children.clear();
         } catch (Exception x) {
-            log.fine("cleanup: Unexpected exception while handling " + null
-                     + ": " + x);
-            log.log(Level.FINEST, "cleanup", x);
+            log.trace("cleanup: Unexpected exception while handling " + null
+                      + ": " + x);
+            log.trace("cleanup", x);
         }
     }
 
@@ -235,8 +236,8 @@ public class Groo implements GrooMBean, MBeanRegistration {
                 addChild(parent, name, factory);
             }
         }
-        if (log.isLoggable(Level.FINE)) {
-            log.fine("update, Groo updated");
+        if (log.isDebugEnabled()) {
+            log.debug("update, Groo updated");
         }
     }
 
@@ -292,10 +293,9 @@ public class Groo implements GrooMBean, MBeanRegistration {
                 }
             }
         } catch (Exception x) {
-            log.log(Level.FINE,
-                    String.format("operation %s, Unexpected exception while handling %s",
-                                  nt, null), x);
-            log.log(Level.FINEST, nt, x);
+            log.debug(String.format("operation %s, Unexpected exception while handling %s",
+                                    nt, null), x);
+            log.debug(nt, x);
         }
     }
 

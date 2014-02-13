@@ -29,10 +29,20 @@
 
 	<scm>
 		<connection>git://github.com/Hellblazer/Nexus.git</connection>
-		<url>https://github.com/Hellblazer/Nexus</url>
+		<url>https://github.com/Hellblazer/Groo</url>
 	</scm>
 
 	<dependencies>
+		<dependency>
+			<groupId>com.hellblazer</groupId>
+			<artifactId>service-discovery</artifactId>
+			<version>1.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.hellblazer</groupId>
+			<artifactId>nexus</artifactId>
+			<version>1.0.1</version>
+		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -43,6 +53,12 @@
 			<groupId>com.hellblazer</groupId>
 			<artifactId>utils</artifactId>
 			<version>0.0.2-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<version>1.9.5</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

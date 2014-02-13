@@ -21,8 +21,6 @@ import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
@@ -32,13 +30,16 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 import javax.management.QueryExp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author hhildebrand
  * 
  */
 public class NetworkBuilder {
 
-    private final static Logger      log     = Logger.getLogger(NetworkBuilder.class.getCanonicalName());
+    private final static Logger      log     = LoggerFactory.getLogger(NetworkBuilder.class);
     private final RegistrationFilter filter;
     private final Groo               groo;
     private final Set<ObjectName>    managed = new CopyOnWriteArraySet<>();
@@ -80,18 +81,16 @@ public class NetworkBuilder {
                 mbs.registerMBean(parent, nodeName);
             } catch (InstanceAlreadyExistsException
                     | MBeanRegistrationException | NotCompliantMBeanException e) {
-                log.log(Level.SEVERE,
-                        String.format("Unable to register new parent: %s",
-                                      nodeName), e);
+                log.error(String.format("Unable to register new parent: %s",
+                                        nodeName), e);
             }
         }
 
         try {
             groo.addParent(parent);
         } catch (IOException e) {
-            log.log(Level.INFO,
-                    String.format(String.format("Error adding parent: %s",
-                                                nodeName)), e);
+            log.info(String.format(String.format("Error adding parent: %s",
+                                                 nodeName)), e);
             return;
         }
     }
@@ -120,9 +119,8 @@ public class NetworkBuilder {
         try {
             return new ObjectName(sourceName.getDomain(), properties);
         } catch (MalformedObjectNameException e) {
-            log.log(Level.SEVERE,
-                    String.format("error in creating parent node name from: %s.  parent properties: %s",
-                                  sourceName, parentProperties), e);
+            log.error(String.format("error in creating parent node name from: %s.  parent properties: %s",
+                                    sourceName, parentProperties), e);
             return null;
         }
     }
