@@ -26,7 +26,7 @@ import javax.management.ObjectName;
  */
 public interface TaskGenerator<ReturnType> {
 
-    Callable<ReturnType> remoteTask(NodeMBean child);
-
     Callable<ReturnType> localTask(ObjectName objectName);
+
+    Callable<ReturnType> remoteTask(NodeMBean child);
 }
