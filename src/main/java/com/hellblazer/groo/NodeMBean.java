@@ -210,7 +210,7 @@ public interface NodeMBean {
                                                                                  ReflectionException,
                                                                                  IOException;
 
-    int getMBeanCount(ObjectName filter);
+    int getMBeanCount(ObjectName filter, QueryExp queryExpr);
 
     Map<ObjectName, Object> invoke(ObjectName name, QueryExp queryExpr,
                                    String operationName, Object params[],

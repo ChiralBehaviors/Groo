@@ -254,11 +254,12 @@ public class MbscNodeWrapper implements NodeMBean {
     /**
      * @param filter
      * @return
-     * @see com.hellblazer.groo.NodeMBean#getMBeanCount(javax.management.ObjectName)
+     * @see com.hellblazer.groo.NodeMBean#getMBeanCount(javax.management.ObjectName,
+     *      QueryExpr)
      */
     @Override
-    public int getMBeanCount(ObjectName filter) {
-        return getProxy().getMBeanCount(filter);
+    public int getMBeanCount(ObjectName filter, QueryExp queryExpr) {
+        return getProxy().getMBeanCount(filter, queryExpr);
     }
 
     /**

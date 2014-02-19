@@ -17,12 +17,21 @@
 package com.hellblazer.groo;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.management.Attribute;
 import javax.management.AttributeList;
@@ -42,12 +51,18 @@ import javax.management.ObjectName;
 import javax.management.QueryExp;
 import javax.management.ReflectionException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author hhildebrand
  * 
  */
 public class Node implements NodeMBean, MBeanRegistration {
+    private static final Logger      log      = LoggerFactory.getLogger(Node.class);
+
     private final Set<NodeMBean>     children = new CopyOnWriteArraySet<>();
+    private final Executor           executor;
     private final RegistrationFilter filter;
     private MBeanServer              mbs;
     private ObjectName               name;
@@ -57,7 +72,13 @@ public class Node implements NodeMBean, MBeanRegistration {
     }
 
     public Node(ObjectName sourcePattern, QueryExp sourceQuery) {
+        this(sourcePattern, sourceQuery, Executors.newCachedThreadPool());
+    }
+
+    public Node(ObjectName sourcePattern, QueryExp sourceQuery,
+                Executor executor) {
         filter = new RegistrationFilter(sourcePattern, sourceQuery);
+        this.executor = executor;
     }
 
     /**
@@ -68,7 +89,7 @@ public class Node implements NodeMBean, MBeanRegistration {
     }
 
     /**
-     * @param name
+     * @param objectName
      * @param listener
      * @param filter
      * @param handback
@@ -78,24 +99,62 @@ public class Node implements NodeMBean, MBeanRegistration {
      *      javax.management.NotificationFilter, java.lang.Object)
      */
     @Override
-    public void addNotificationListener(ObjectName name,
-                                        NotificationListener listener,
-                                        NotificationFilter filter,
-                                        Object handback)
-                                                        throws InstanceNotFoundException {
-        for (NodeMBean child : children) {
+    public void addNotificationListener(final ObjectName objectName,
+                                        final NotificationListener listener,
+                                        final NotificationFilter filter,
+                                        final Object handback)
+                                                              throws InstanceNotFoundException {
+        ExecutorCompletionService<Boolean> completionService = new ExecutorCompletionService<>(
+                                                                                               executor);
+        TaskGenerator<Boolean> generator = new TaskGenerator<Boolean>() {
+            @Override
+            public Callable<Boolean> localTask(final ObjectName objectName) {
+                return new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        mbs.addNotificationListener(objectName, listener,
+                                                    filter, handback);
+                        return true;
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Boolean> remoteTask(final NodeMBean child) {
+                return new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        child.addNotificationListener(objectName, listener,
+                                                      filter, handback);
+                        return true;
+                    }
+                };
+            }
+        };
+        List<Future<Boolean>> futures = forAll(completionService, generator,
+                                               objectName);
+        for (int i = 0; i < futures.size(); i++) {
             try {
-                child.addNotificationListener(name, listener, filter, handback);
-                return;
-            } catch (InstanceNotFoundException e) {
-                // continue
+                if (completionService.take().get()) {
+                    for (Future<Boolean> future : futures) {
+                        future.cancel(true);
+                    }
+                    return;
+                }
+            } catch (InterruptedException e) {
+                return; // don't even log this ;)
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when adding notification listener on %s for %s",
+                                        this, objectName, listener), e);
             }
         }
-        mbs.addNotificationListener(name, listener, filter, handback);
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s",
+                                                          objectName));
     }
 
     /**
-     * @param name
+     * @param objectName
      * @param listener
      * @param filter
      * @param handback
@@ -105,48 +164,119 @@ public class Node implements NodeMBean, MBeanRegistration {
      *      java.lang.Object)
      */
     @Override
-    public void addNotificationListener(ObjectName name, ObjectName listener,
-                                        NotificationFilter filter,
-                                        Object handback)
-                                                        throws InstanceNotFoundException {
-        for (NodeMBean child : children) {
+    public void addNotificationListener(final ObjectName objectName,
+                                        final ObjectName listener,
+                                        final NotificationFilter filter,
+                                        final Object handback)
+                                                              throws InstanceNotFoundException {
+        ExecutorCompletionService<Boolean> completionService = new ExecutorCompletionService<>(
+                                                                                               executor);
+        TaskGenerator<Boolean> generator = new TaskGenerator<Boolean>() {
+            @Override
+            public Callable<Boolean> localTask(final ObjectName objectName) {
+                return new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        mbs.addNotificationListener(objectName, listener,
+                                                    filter, handback);
+                        return true;
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Boolean> remoteTask(final NodeMBean child) {
+                return new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        child.addNotificationListener(objectName, listener,
+                                                      filter, handback);
+                        return true;
+                    }
+                };
+            }
+        };
+        List<Future<Boolean>> futures = forAll(completionService, generator,
+                                               objectName);
+        for (int i = 0; i < futures.size(); i++) {
             try {
-                child.addNotificationListener(name, listener, filter, handback);
-                return;
-            } catch (InstanceNotFoundException e) {
-                // continue
+                if (completionService.take().get()) {
+                    for (Future<Boolean> future : futures) {
+                        future.cancel(true);
+                    }
+                    return;
+                }
+            } catch (InterruptedException e) {
+                return; // don't even log this ;)
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when adding notification listener on %s for %s",
+                                        this, objectName, listener), e);
             }
         }
-        mbs.addNotificationListener(name, listener, filter, handback);
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s",
+                                                          objectName));
     }
 
     /* (non-Javadoc)
      * @see com.hellblazer.groo.NodeMXBean#addNotificationListener(javax.management.ObjectName, javax.management.QueryExp, javax.management.NotificationListener, javax.management.NotificationFilter, java.lang.Object)
      */
     @Override
-    public void addNotificationListener(ObjectName name, QueryExp queryExpr,
-                                        NotificationListener listener,
-                                        NotificationFilter filter,
-                                        Object handback)
-                                                        throws InstanceNotFoundException {
+    public void addNotificationListener(final ObjectName pattern,
+                                        final QueryExp queryExpr,
+                                        final NotificationListener listener,
+                                        final NotificationFilter filter,
+                                        final Object handback)
+                                                              throws InstanceNotFoundException {
+        ExecutorCompletionService<Boolean> completionService = new ExecutorCompletionService<>(
+                                                                                               executor);
+        TaskGenerator<Boolean> generator = new TaskGenerator<Boolean>() {
+            @Override
+            public Callable<Boolean> localTask(final ObjectName objectName) {
+                return new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        mbs.addNotificationListener(objectName, listener,
+                                                    filter, handback);
+                        return true;
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Boolean> remoteTask(final NodeMBean child) {
+                return new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        child.addNotificationListener(pattern, queryExpr,
+                                                      listener, filter,
+                                                      handback);
+                        return true;
+                    }
+                };
+            }
+        };
+        List<Future<Boolean>> futures = forAll(completionService, generator,
+                                               pattern, queryExpr);
+
         boolean success = false;
-        for (NodeMBean child : children) {
+        for (int i = 0; i < futures.size(); i++) {
             try {
-                child.addNotificationListener(name, queryExpr, listener,
-                                              filter, handback);
-                success = true;
-            } catch (InstanceNotFoundException e) {
-                // continue
+                if (completionService.take().get()) {
+                    success |= true;
+                }
+            } catch (InterruptedException e) {
+                return;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when adding notification listener %s, %s",
+                                        this, pattern, queryExpr), e);
             }
         }
-        Set<ObjectName> names = mbs.queryNames(name, queryExpr);
-        if (!success && names.size() == 0) {
+        if (!success) {
             throw new InstanceNotFoundException(
-                                                String.format("No instance found for %s, %s",
-                                                              name, queryExpr));
-        }
-        for (ObjectName n : names) {
-            mbs.addNotificationListener(n, listener, filter, handback);
+                                                String.format("Instance not found: %s, %s",
+                                                              pattern,
+                                                              queryExpr));
         }
     }
 
@@ -154,31 +284,61 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see com.hellblazer.groo.NodeMXBean#addNotificationListener(javax.management.ObjectName, javax.management.QueryExp, javax.management.ObjectName, javax.management.NotificationFilter, java.lang.Object)
      */
     @Override
-    public void addNotificationListener(ObjectName name, QueryExp queryExpr,
-                                        ObjectName listener,
-                                        NotificationFilter filter,
-                                        Object handback)
-                                                        throws InstanceNotFoundException,
-                                                        IOException {
-        boolean success = false;
-        for (NodeMBean child : children) {
+    public void addNotificationListener(final ObjectName pattern,
+                                        final QueryExp queryExpr,
+                                        final ObjectName listener,
+                                        final NotificationFilter filter,
+                                        final Object handback)
+                                                              throws InstanceNotFoundException,
+                                                              IOException {
+        ExecutorCompletionService<Boolean> completionService = new ExecutorCompletionService<>(
+                                                                                               executor);
+        TaskGenerator<Boolean> generator = new TaskGenerator<Boolean>() {
+            @Override
+            public Callable<Boolean> localTask(final ObjectName objectName) {
+                return new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        mbs.addNotificationListener(objectName, listener,
+                                                    filter, handback);
+                        return true;
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Boolean> remoteTask(final NodeMBean child) {
+                return new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() throws Exception {
+                        child.addNotificationListener(pattern, queryExpr,
+                                                      listener, filter,
+                                                      handback);
+                        return true;
+                    }
+                };
+            }
+        };
+        List<Future<Boolean>> futures = forAll(completionService, generator,
+                                               pattern, queryExpr);
+        for (int i = 0; i < futures.size(); i++) {
             try {
-                child.addNotificationListener(name, queryExpr, listener,
-                                              filter, handback);
-                success = true;
-            } catch (InstanceNotFoundException e) {
-                // continue
+                if (completionService.take().get()) {
+                    for (Future<Boolean> future : futures) {
+                        future.cancel(true);
+                    }
+                    return;
+                }
+            } catch (InterruptedException e) {
+                return;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when adding notification listener %s, %s",
+                                        this, pattern, queryExpr), e);
             }
         }
-        Set<ObjectName> names = mbs.queryNames(name, queryExpr);
-        if (!success && names.size() == 0) {
-            throw new InstanceNotFoundException(
-                                                String.format("No instance found for %s, %s",
-                                                              name, queryExpr));
-        }
-        for (ObjectName n : names) {
-            mbs.addNotificationListener(n, listener, filter, handback);
-        }
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s, %s",
+                                                          name, queryExpr));
     }
 
     /* (non-Javadoc)
@@ -210,26 +370,67 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see com.hellblazer.groo.NodeMXBean#getAttribute(javax.management.ObjectName, javax.management.QueryExp, java.lang.String)
      */
     @Override
-    public Map<ObjectName, Object> getAttribute(ObjectName name,
-                                                QueryExp queryExpr,
-                                                String attribute)
-                                                                 throws MBeanException,
-                                                                 AttributeNotFoundException,
-                                                                 InstanceNotFoundException,
-                                                                 ReflectionException,
-                                                                 IOException {
+    public Map<ObjectName, Object> getAttribute(final ObjectName pattern,
+                                                final QueryExp queryExpr,
+                                                final String attribute)
+                                                                       throws MBeanException,
+                                                                       AttributeNotFoundException,
+                                                                       InstanceNotFoundException,
+                                                                       ReflectionException,
+                                                                       IOException {
         Map<ObjectName, Object> attributes = new HashMap<>();
-        for (NodeMBean child : children) {
-            attributes.putAll(child.getAttribute(name, queryExpr, attribute));
+        ExecutorCompletionService<Map<ObjectName, Object>> completionService = new ExecutorCompletionService<>(
+                                                                                                               executor);
+        TaskGenerator<Map<ObjectName, Object>> generator = new TaskGenerator<Map<ObjectName, Object>>() {
+            @Override
+            public Callable<Map<ObjectName, Object>> localTask(final ObjectName objectName) {
+                return new Callable<Map<ObjectName, Object>>() {
+                    @Override
+                    public Map<ObjectName, Object> call() throws Exception {
+                        Map<ObjectName, Object> attributes = new HashMap<>();
+                        attributes.put(objectName,
+                                       mbs.getAttribute(objectName, attribute));
+                        return attributes;
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Map<ObjectName, Object>> remoteTask(final NodeMBean child) {
+                return new Callable<Map<ObjectName, Object>>() {
+                    @Override
+                    public Map<ObjectName, Object> call() throws Exception {
+                        return child.getAttribute(pattern, queryExpr, attribute);
+                    }
+                };
+            }
+        };
+        List<Future<Map<ObjectName, Object>>> futures = forAll(completionService,
+                                                               generator,
+                                                               pattern,
+                                                               queryExpr);
+
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                attributes.putAll(completionService.take().get());
+            } catch (InterruptedException e) {
+                return Collections.emptyMap();
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when collecting attributes %s, %s",
+                                        this, pattern, queryExpr), e);
+            }
         }
-        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
-            attributes.put(instance, mbs.getAttribute(instance, attribute));
+        if (attributes.size() == 0) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              pattern,
+                                                              queryExpr));
         }
         return attributes;
     }
 
     /**
-     * @param name
+     * @param objectName
      * @param attribute
      * @return
      * @throws MBeanException
@@ -240,37 +441,129 @@ public class Node implements NodeMBean, MBeanRegistration {
      *      java.lang.String)
      */
     @Override
-    public Object getAttribute(ObjectName name, String attribute)
-                                                                 throws MBeanException,
-                                                                 AttributeNotFoundException,
-                                                                 InstanceNotFoundException,
-                                                                 ReflectionException {
-        for (NodeMBean child : children) {
+    public Object getAttribute(final ObjectName objectName,
+                               final String attribute)
+                                                      throws MBeanException,
+                                                      AttributeNotFoundException,
+                                                      InstanceNotFoundException,
+                                                      ReflectionException {
+        ExecutorCompletionService<Object> completionService = new ExecutorCompletionService<>(
+                                                                                              executor);
+        TaskGenerator<Object> generator = new TaskGenerator<Object>() {
+            @Override
+            public Callable<Object> localTask(final ObjectName objectName) {
+                return new Callable<Object>() {
+                    @Override
+                    public Object call() throws Exception {
+                        return mbs.getAttribute(objectName, attribute);
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Object> remoteTask(final NodeMBean child) {
+                return new Callable<Object>() {
+                    @Override
+                    public Object call() throws Exception {
+                        return child.getAttribute(objectName, attribute);
+                    }
+                };
+            }
+        };
+        List<Future<Object>> futures = forAll(completionService, generator,
+                                              objectName);
+
+        boolean attributeNotFound = false;
+        for (int i = 0; i < futures.size(); i++) {
             try {
-                return child.getAttribute(name, attribute);
-            } catch (InstanceNotFoundException e) {
-                // ignored
+                Object attributeValue = completionService.take().get();
+                for (Future<Object> future : futures) {
+                    future.cancel(true);
+                }
+                return attributeValue;
+            } catch (InterruptedException e) {
+                return Collections.emptyMap();
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof AttributeNotFoundException) {
+                    attributeNotFound |= true;
+                } else {
+                    log.debug(String.format("%s experienced exception when retriving attribute %s, %s",
+                                            this, objectName, attribute), e);
+                }
             }
         }
-        return mbs.getAttribute(name, attribute);
+        if (attributeNotFound) {
+            throw new AttributeNotFoundException(
+                                                 String.format("Attribute not found: %s for %s",
+                                                               attribute,
+                                                               objectName));
+        } else {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s",
+                                                              objectName));
+        }
     }
 
     /* (non-Javadoc)
      * @see com.hellblazer.groo.NodeMXBean#getAttributes(javax.management.ObjectName, javax.management.QueryExp, java.lang.String[])
      */
     @Override
-    public Map<ObjectName, AttributeList> getAttributes(ObjectName name,
-                                                        QueryExp queryExpr,
-                                                        String[] attributes)
-                                                                            throws InstanceNotFoundException,
-                                                                            ReflectionException,
-                                                                            IOException {
+    public Map<ObjectName, AttributeList> getAttributes(final ObjectName pattern,
+                                                        final QueryExp queryExpr,
+                                                        final String[] attributes)
+                                                                                  throws InstanceNotFoundException,
+                                                                                  ReflectionException,
+                                                                                  IOException {
         Map<ObjectName, AttributeList> attrs = new HashMap<>();
-        for (NodeMBean child : children) {
-            attrs.putAll(child.getAttributes(name, queryExpr, attributes));
+        ExecutorCompletionService<Map<ObjectName, AttributeList>> completionService = new ExecutorCompletionService<>(
+                                                                                                                      executor);
+        TaskGenerator<Map<ObjectName, AttributeList>> generator = new TaskGenerator<Map<ObjectName, AttributeList>>() {
+            @Override
+            public Callable<Map<ObjectName, AttributeList>> localTask(final ObjectName objectName) {
+                return new Callable<Map<ObjectName, AttributeList>>() {
+                    @Override
+                    public Map<ObjectName, AttributeList> call()
+                                                                throws Exception {
+                        Map<ObjectName, AttributeList> attrs = new HashMap<>();
+                        attrs.put(objectName,
+                                  mbs.getAttributes(objectName, attributes));
+                        return attrs;
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Map<ObjectName, AttributeList>> remoteTask(final NodeMBean child) {
+                return new Callable<Map<ObjectName, AttributeList>>() {
+                    @Override
+                    public Map<ObjectName, AttributeList> call()
+                                                                throws Exception {
+                        return child.getAttributes(pattern, queryExpr,
+                                                   attributes);
+                    }
+                };
+            }
+        };
+        List<Future<Map<ObjectName, AttributeList>>> futures = forAll(completionService,
+                                                                      generator,
+                                                                      pattern,
+                                                                      queryExpr);
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                attrs.putAll(completionService.take().get());
+            } catch (InterruptedException e) {
+                return Collections.emptyMap();
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when retriving attributes %s, %s, %s, %s",
+                                        this, pattern, queryExpr,
+                                        Arrays.asList(attributes)), e);
+            }
         }
-        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
-            attrs.put(instance, mbs.getAttributes(instance, attributes));
+        if (attrs.size() == 0) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              pattern,
+                                                              queryExpr));
         }
         return attrs;
     }
@@ -285,16 +578,53 @@ public class Node implements NodeMBean, MBeanRegistration {
      *      java.lang.String[])
      */
     @Override
-    public AttributeList getAttributes(ObjectName name, String[] attributes)
-                                                                            throws InstanceNotFoundException,
-                                                                            ReflectionException {
-        for (NodeMBean child : children) {
-            AttributeList attrs = child.getAttributes(name, attributes);
-            if (attrs != null) {
+    public AttributeList getAttributes(final ObjectName objectName,
+                                       final String[] attributes)
+                                                                 throws InstanceNotFoundException,
+                                                                 ReflectionException {
+        ExecutorCompletionService<AttributeList> completionService = new ExecutorCompletionService<>(
+                                                                                                     executor);
+        TaskGenerator<AttributeList> generator = new TaskGenerator<AttributeList>() {
+            @Override
+            public Callable<AttributeList> localTask(final ObjectName objectName) {
+                return new Callable<AttributeList>() {
+                    @Override
+                    public AttributeList call() throws Exception {
+                        return mbs.getAttributes(objectName, attributes);
+                    }
+                };
+            }
+
+            @Override
+            public Callable<AttributeList> remoteTask(final NodeMBean child) {
+                return new Callable<AttributeList>() {
+                    @Override
+                    public AttributeList call() throws Exception {
+                        return child.getAttributes(objectName, attributes);
+                    }
+                };
+            }
+        };
+        List<Future<AttributeList>> futures = forAll(completionService,
+                                                     generator, objectName);
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                AttributeList attrs = completionService.take().get();
+                for (Future<AttributeList> future : futures) {
+                    future.cancel(true);
+                }
                 return attrs;
+            } catch (InterruptedException e) {
+                return new AttributeList();
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when retriving attributes %s, %s",
+                                        this, objectName,
+                                        Arrays.asList(attributes)), e);
             }
         }
-        return mbs.getAttributes(name, attributes);
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s",
+                                                          objectName));
     }
 
     public Set<NodeMBean> getChildren() {
@@ -314,27 +644,91 @@ public class Node implements NodeMBean, MBeanRegistration {
      */
     @Override
     public Integer getMBeanCount() {
+        ExecutorCompletionService<Integer> completionService = new ExecutorCompletionService<>(
+                                                                                               executor);
+        TaskGenerator<Integer> generator = new TaskGenerator<Integer>() {
+            @Override
+            public Callable<Integer> localTask(final ObjectName objectName) {
+                return new Callable<Integer>() {
+                    @Override
+                    public Integer call() throws Exception {
+                        return mbs.getMBeanCount();
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Integer> remoteTask(final NodeMBean child) {
+                return new Callable<Integer>() {
+                    @Override
+                    public Integer call() throws Exception {
+                        return child.getMBeanCount();
+                    }
+                };
+            }
+        };
+        List<Future<Integer>> futures = forAll(completionService, generator,
+                                               null);
         int count = 0;
-        for (NodeMBean child : children) {
-            count += child.getMBeanCount();
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                count += completionService.take().get();
+            } catch (InterruptedException e) {
+                return 0;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when retriving mbean count %s",
+                                        this), e);
+            }
         }
-        return count + mbs.getMBeanCount();
+        return count;
     }
 
     /* (non-Javadoc)
      * @see com.hellblazer.groo.NodeMXBean#getMBeanCount(javax.management.ObjectName)
      */
     @Override
-    public int getMBeanCount(ObjectName filter) {
+    public int getMBeanCount(final ObjectName filter, final QueryExp queryExp) {
+        ExecutorCompletionService<Integer> completionService = new ExecutorCompletionService<>(
+                                                                                               executor);
+        TaskGenerator<Integer> generator = new TaskGenerator<Integer>() {
+            @Override
+            public Callable<Integer> localTask(final ObjectName objectName) {
+                return new Callable<Integer>() {
+                    @Override
+                    public Integer call() throws Exception {
+                        return mbs.queryNames(filter, queryExp).size();
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Integer> remoteTask(final NodeMBean child) {
+                return new Callable<Integer>() {
+                    @Override
+                    public Integer call() throws Exception {
+                        return child.getMBeanCount(filter, queryExp);
+                    }
+                };
+            }
+        };
+        List<Future<Integer>> futures = forAll(completionService, generator,
+                                               null);
         int count = 0;
-        for (NodeMBean child : children) {
-            count += child.getMBeanCount(filter);
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                count += completionService.take().get();
+            } catch (InterruptedException e) {
+                return 0;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when retriving mbean count %s, %s, %s",
+                                        this, filter, queryExp), e);
+            }
         }
-        return count + mbs.queryNames(filter, null).size();
+        return count;
     }
 
     /**
-     * @param name
+     * @param objectName
      * @return
      * @throws InstanceNotFoundException
      * @throws IntrospectionException
@@ -342,17 +736,52 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see javax.management.MBeanServer#getMBeanInfo(javax.management.ObjectName)
      */
     @Override
-    public MBeanInfo getMBeanInfo(ObjectName name)
-                                                  throws InstanceNotFoundException,
-                                                  IntrospectionException,
-                                                  ReflectionException {
-        for (NodeMBean child : children) {
-            MBeanInfo info = child.getMBeanInfo(name);
-            if (info != null) {
+    public MBeanInfo getMBeanInfo(final ObjectName objectName)
+                                                              throws InstanceNotFoundException,
+                                                              IntrospectionException,
+                                                              ReflectionException {
+        ExecutorCompletionService<MBeanInfo> completionService = new ExecutorCompletionService<>(
+                                                                                                 executor);
+        TaskGenerator<MBeanInfo> generator = new TaskGenerator<MBeanInfo>() {
+            @Override
+            public Callable<MBeanInfo> localTask(final ObjectName objectName) {
+                return new Callable<MBeanInfo>() {
+                    @Override
+                    public MBeanInfo call() throws Exception {
+                        return mbs.getMBeanInfo(objectName);
+                    }
+                };
+            }
+
+            @Override
+            public Callable<MBeanInfo> remoteTask(final NodeMBean child) {
+                return new Callable<MBeanInfo>() {
+                    @Override
+                    public MBeanInfo call() throws Exception {
+                        return child.getMBeanInfo(objectName);
+                    }
+                };
+            }
+        };
+        List<Future<MBeanInfo>> futures = forAll(completionService, generator,
+                                                 objectName);
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                MBeanInfo info = completionService.take().get();
+                for (Future<MBeanInfo> future : futures) {
+                    future.cancel(true);
+                }
                 return info;
+            } catch (InterruptedException e) {
+                return null;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when retriving mbean info %s, %s",
+                                        this, objectName), e);
             }
         }
-        return mbs.getMBeanInfo(name);
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s",
+                                                          objectName));
     }
 
     /**
@@ -367,30 +796,101 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see com.hellblazer.groo.NodeMBean#getObjectInstance(javax.management.ObjectName)
      */
     @Override
-    public ObjectInstance getObjectInstance(ObjectName name)
-                                                            throws InstanceNotFoundException {
-        for (NodeMBean child : children) {
-            ObjectInstance instance = child.getObjectInstance(name);
-            if (instance != null) {
+    public ObjectInstance getObjectInstance(final ObjectName objectName)
+                                                                        throws InstanceNotFoundException {
+        ExecutorCompletionService<ObjectInstance> completionService = new ExecutorCompletionService<>(
+                                                                                                      executor);
+        TaskGenerator<ObjectInstance> generator = new TaskGenerator<ObjectInstance>() {
+            @Override
+            public Callable<ObjectInstance> localTask(final ObjectName objectName) {
+                return new Callable<ObjectInstance>() {
+                    @Override
+                    public ObjectInstance call() throws Exception {
+                        return mbs.getObjectInstance(objectName);
+                    }
+                };
+            }
+
+            @Override
+            public Callable<ObjectInstance> remoteTask(final NodeMBean child) {
+                return new Callable<ObjectInstance>() {
+                    @Override
+                    public ObjectInstance call() throws Exception {
+                        return child.getObjectInstance(objectName);
+                    }
+                };
+            }
+        };
+        List<Future<ObjectInstance>> futures = forAll(completionService,
+                                                      generator, objectName);
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                ObjectInstance instance = completionService.take().get();
+                for (Future<ObjectInstance> future : futures) {
+                    future.cancel(true);
+                }
                 return instance;
+            } catch (InterruptedException e) {
+                return null;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when retriving object instance %s, %s",
+                                        this, objectName), e);
             }
         }
-        return mbs.getObjectInstance(name);
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s",
+                                                          objectName));
     }
 
     /* (non-Javadoc)
      * @see com.hellblazer.groo.NodeMXBean#getObjectInstance(javax.management.ObjectName, javax.management.QueryExp)
      */
     @Override
-    public Set<ObjectInstance> getObjectInstances(ObjectName name,
-                                                  QueryExp queryExpr)
-                                                                     throws InstanceNotFoundException,
-                                                                     IOException {
+    public Set<ObjectInstance> getObjectInstances(final ObjectName filter,
+                                                  final QueryExp queryExpr)
+                                                                           throws InstanceNotFoundException,
+                                                                           IOException {
+        ExecutorCompletionService<Set<ObjectInstance>> completionService = new ExecutorCompletionService<>(
+                                                                                                           executor);
+        TaskGenerator<Set<ObjectInstance>> generator = new TaskGenerator<Set<ObjectInstance>>() {
+            @Override
+            public Callable<Set<ObjectInstance>> localTask(final ObjectName objectName) {
+                return new Callable<Set<ObjectInstance>>() {
+                    @Override
+                    public Set<ObjectInstance> call() throws Exception {
+                        return mbs.queryMBeans(objectName, queryExpr);
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Set<ObjectInstance>> remoteTask(final NodeMBean child) {
+                return new Callable<Set<ObjectInstance>>() {
+                    @Override
+                    public Set<ObjectInstance> call() throws Exception {
+                        return child.getObjectInstances(filter, queryExpr);
+                    }
+                };
+            }
+        };
+        List<Future<Set<ObjectInstance>>> futures = forAll(completionService,
+                                                           generator, filter);
         Set<ObjectInstance> instances = new HashSet<>();
-        for (NodeMBean child : children) {
-            instances.addAll(child.getObjectInstances(name, queryExpr));
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                instances.addAll(completionService.take().get());
+            } catch (InterruptedException e) {
+                return instances;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when retreiving object instances %s, %s, %s",
+                                        this, filter, queryExpr), e);
+            }
         }
-        instances.addAll(mbs.queryMBeans(name, queryExpr));
+        if (instances.size() == 0) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              filter, queryExpr));
+        }
         return instances;
     }
 
@@ -409,27 +909,75 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see com.hellblazer.groo.NodeMXBean#invoke(javax.management.ObjectName, javax.management.Query, java.lang.String, java.lang.Object[], java.lang.String[])
      */
     @Override
-    public Map<ObjectName, Object> invoke(ObjectName name, QueryExp queryExpr,
-                                          String operationName,
-                                          Object[] params, String[] signature)
-                                                                              throws InstanceNotFoundException,
-                                                                              MBeanException,
-                                                                              ReflectionException,
-                                                                              IOException {
+    public Map<ObjectName, Object> invoke(final ObjectName filter,
+                                          final QueryExp queryExpr,
+                                          final String operationName,
+                                          final Object[] params,
+                                          final String[] signature)
+                                                                   throws InstanceNotFoundException,
+                                                                   MBeanException,
+                                                                   ReflectionException,
+                                                                   IOException {
+        ExecutorCompletionService<Map<ObjectName, Object>> completionService = new ExecutorCompletionService<>(
+                                                                                                               executor);
+        TaskGenerator<Map<ObjectName, Object>> generator = new TaskGenerator<Map<ObjectName, Object>>() {
+            @Override
+            public Callable<Map<ObjectName, Object>> localTask(final ObjectName objectName) {
+                return new Callable<Map<ObjectName, Object>>() {
+                    @Override
+                    public Map<ObjectName, Object> call() throws Exception {
+                        Map<ObjectName, Object> result = new HashMap<>();
+                        result.put(objectName, mbs.invoke(objectName,
+                                                          operationName,
+                                                          params, signature));
+                        return result;
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Map<ObjectName, Object>> remoteTask(final NodeMBean child) {
+                return new Callable<Map<ObjectName, Object>>() {
+                    @Override
+                    public Map<ObjectName, Object> call() throws Exception {
+                        return child.invoke(filter, queryExpr, operationName,
+                                            params, signature);
+                    }
+                };
+            }
+        };
+        List<Future<Map<ObjectName, Object>>> futures = forAll(completionService,
+                                                               generator,
+                                                               filter,
+                                                               queryExpr);
         Map<ObjectName, Object> results = new HashMap<>();
-        for (NodeMBean child : children) {
-            results.putAll(child.invoke(name, queryExpr, operationName, params,
-                                        signature));
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                results.putAll(completionService.take().get());
+            } catch (InterruptedException e) {
+                return results;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when invoking %s, %s, %s, %s, %s",
+                                        this,
+                                        filter,
+                                        queryExpr,
+                                        operationName,
+                                        params != null ? Arrays.asList(params)
+                                                      : null,
+                                        signature != null ? Arrays.asList(signature)
+                                                         : null), e.getCause());
+            }
         }
-        for (ObjectName instance : mbs.queryNames(name, queryExpr)) {
-            results.put(instance,
-                        mbs.invoke(instance, operationName, params, signature));
+        if (results.size() == 0) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              filter, queryExpr));
         }
         return results;
     }
 
     /**
-     * @param name
+     * @param objectName
      * @param operationName
      * @param params
      * @param signature
@@ -441,18 +989,62 @@ public class Node implements NodeMBean, MBeanRegistration {
      *      java.lang.String, java.lang.Object[], java.lang.String[])
      */
     @Override
-    public Object invoke(ObjectName name, String operationName,
-                         Object[] params, String[] signature)
-                                                             throws InstanceNotFoundException,
-                                                             MBeanException,
-                                                             ReflectionException {
-        for (NodeMBean child : children) {
-            Object result = child.invoke(name, operationName, params, signature);
-            if (result != null) {
+    public Object invoke(final ObjectName objectName,
+                         final String operationName, final Object[] params,
+                         final String[] signature)
+                                                  throws InstanceNotFoundException,
+                                                  MBeanException,
+                                                  ReflectionException {
+        ExecutorCompletionService<Object> completionService = new ExecutorCompletionService<>(
+                                                                                              executor);
+        TaskGenerator<Object> generator = new TaskGenerator<Object>() {
+            @Override
+            public Callable<Object> localTask(final ObjectName objectName) {
+                return new Callable<Object>() {
+                    @Override
+                    public Object call() throws Exception {
+                        return mbs.invoke(objectName, operationName, params,
+                                          signature);
+                    }
+                };
+            }
+
+            @Override
+            public Callable<Object> remoteTask(final NodeMBean child) {
+                return new Callable<Object>() {
+                    @Override
+                    public Object call() throws Exception {
+                        return child.invoke(objectName, operationName, params,
+                                            signature);
+                    }
+                };
+            }
+        };
+        List<Future<Object>> futures = forAll(completionService, generator,
+                                              objectName);
+        for (int i = 0; i < futures.size(); i++) {
+            try {
+                Object result = completionService.take().get();
+                for (Future<Object> future : futures) {
+                    future.cancel(true);
+                }
                 return result;
+            } catch (InterruptedException e) {
+                return null;
+            } catch (ExecutionException e) {
+                log.debug(String.format("%s experienced exception when invoking %s, %s, %s, %s",
+                                        this,
+                                        objectName,
+                                        operationName,
+                                        params != null ? Arrays.asList(params)
+                                                      : null,
+                                        signature != null ? Arrays.asList(signature)
+                                                         : null), e);
             }
         }
-        return mbs.invoke(name, operationName, params, signature);
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s",
+                                                          objectName));
     }
 
     /**
@@ -907,5 +1499,35 @@ public class Node implements NodeMBean, MBeanRegistration {
     @Override
     public String toString() {
         return "Node [" + name + ", " + filter + "]";
+    }
+
+    /**
+     * @param completionService
+     * @param generator
+     * @param objectName
+     * @return
+     */
+    private <V> List<Future<V>> forAll(ExecutorCompletionService<V> completionService,
+                                       TaskGenerator<V> generator,
+                                       ObjectName objectName) {
+        List<Future<V>> futures = new ArrayList<>();
+        for (NodeMBean child : children) {
+            futures.add(completionService.submit(generator.remoteTask(child)));
+        }
+        futures.add(completionService.submit(generator.localTask(objectName)));
+        return futures;
+    }
+
+    private <V> List<Future<V>> forAll(ExecutorCompletionService<V> completionService,
+                                       TaskGenerator<V> generator,
+                                       ObjectName pattern, QueryExp queryExpr) {
+        List<Future<V>> futures = new ArrayList<>();
+        for (NodeMBean child : children) {
+            futures.add(completionService.submit(generator.remoteTask(child)));
+        }
+        for (ObjectName n : mbs.queryNames(pattern, queryExpr)) {
+            futures.add(completionService.submit(generator.localTask(n)));
+        }
+        return futures;
     }
 }
