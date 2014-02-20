@@ -39,10 +39,6 @@ public class BasicMbscFactory extends MbscFactory {
         return getJMXConnector().getConnectionId();
     }
 
-    public final Subject getDelegationSubject() {
-        return subject;
-    }
-
     public JMXConnector getJMXConnector() {
         return connector;
     }

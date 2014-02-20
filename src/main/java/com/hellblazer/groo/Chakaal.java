@@ -196,7 +196,7 @@ public class Chakaal implements ChakallMBean {
         }
         JMXConnector connection;
         try {
-            connection = JMXConnectorFactory.connect(url, sourceMap);
+            connection = JMXConnectorFactory.newJMXConnector(url, sourceMap);
         } catch (IOException e) {
             log.warn(String.format("Error connecting to: %s", url.toString()),
                      e);

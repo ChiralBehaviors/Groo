@@ -22,13 +22,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.util.UUID;
 
-import javax.management.MBeanServer;
-import javax.management.MBeanServerFactory;
-import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXServiceURL;
 
 import org.junit.Test;
@@ -41,8 +37,6 @@ import com.hellblazer.slp.ServiceReference;
 import com.hellblazer.slp.ServiceScope;
 import com.hellblazer.slp.ServiceType;
 import com.hellblazer.slp.ServiceURL;
-import com.hellblazer.utils.Utils;
-import com.hellblazer.utils.jmx.RmiJmxServerFactory;
 
 /**
  * @author hhildebrand
@@ -52,12 +46,8 @@ public class ChakaalTest {
 
     @Test
     public void testListen() throws Exception {
-        MBeanServer leaf1Mbs = MBeanServerFactory.newMBeanServer();
-        JMXConnectorServer leaf1Server = RmiJmxServerFactory.contruct(new InetSocketAddress(
-                                                                                            Utils.allocatePort()),
-                                                                      leaf1Mbs);
-        leaf1Server.start();
-        ServiceURL url = constructServiceURL(leaf1Server.getAddress());
+        ServiceURL url = constructServiceURL(new JMXServiceURL(
+                                                               "service:jmx:rmi://0.0.0.0:1024/stub/rO0ABXNy"));
         ServiceScope scope = mock(ServiceScope.class);
         Groo groo = mock(Groo.class);
         ServiceReference ref = mock(ServiceReference.class);
