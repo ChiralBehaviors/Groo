@@ -258,14 +258,11 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
+        boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
-                }
+                completionService.take().get();
+                success = true;
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
@@ -273,9 +270,12 @@ public class Node implements NodeMBean, MBeanRegistration {
                                         this, pattern, queryExpr), e);
             }
         }
-        throw new InstanceNotFoundException(
-                                            String.format("Instance not found: %s, %s",
-                                                          pattern, queryExpr));
+        if (!success) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              pattern,
+                                                              queryExpr));
+        }
     }
 
     /* (non-Javadoc)
@@ -319,14 +319,11 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
+        boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
-                }
+                completionService.take().get();
+                success = true;
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
@@ -334,9 +331,11 @@ public class Node implements NodeMBean, MBeanRegistration {
                                         this, pattern, queryExpr), e);
             }
         }
-        throw new InstanceNotFoundException(
-                                            String.format("Instance not found: %s, %s",
-                                                          name, queryExpr));
+        if (!success) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              name, queryExpr));
+        }
     }
 
     /* (non-Javadoc)
@@ -1595,14 +1594,11 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
+        boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
-                }
+                completionService.take().get();
+                success = true;
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
@@ -1610,9 +1606,12 @@ public class Node implements NodeMBean, MBeanRegistration {
                                         this, pattern, queryExpr), e);
             }
         }
-        throw new InstanceNotFoundException(
-                                            String.format("Instance not found: %s, %s",
-                                                          pattern, queryExpr));
+        if (!success) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              pattern,
+                                                              queryExpr));
+        }
     }
 
     /* (non-Javadoc)
@@ -1657,9 +1656,11 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
+        boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
                 completionService.take().get();
+                success = true;
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
@@ -1668,9 +1669,11 @@ public class Node implements NodeMBean, MBeanRegistration {
                                         filter, handback), e);
             }
         }
-        throw new InstanceNotFoundException(
-                                            String.format("Instance not found: %s, %s",
-                                                          name, queryExpr));
+        if (!success) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              name, queryExpr));
+        }
     }
 
     /* (non-Javadoc)
@@ -1711,9 +1714,11 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
+        boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
                 completionService.take().get();
+                success = true;
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
@@ -1721,9 +1726,11 @@ public class Node implements NodeMBean, MBeanRegistration {
                                         this, pattern, queryExpr, listener), e);
             }
         }
-        throw new InstanceNotFoundException(
-                                            String.format("Instance not found: %s, %s",
-                                                          name, queryExpr));
+        if (!success) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              name, queryExpr));
+        }
     }
 
     /* (non-Javadoc)
@@ -1768,9 +1775,11 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
+        boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
                 completionService.take().get();
+                success = true;
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
@@ -1779,9 +1788,11 @@ public class Node implements NodeMBean, MBeanRegistration {
                                         filter, handback), e);
             }
         }
-        throw new InstanceNotFoundException(
-                                            String.format("Instance not found: %s, %s",
-                                                          name, queryExpr));
+        if (!success) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              name, queryExpr));
+        }
     }
 
     /**
@@ -1903,20 +1914,35 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
+        boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
                 completionService.take().get();
-                return;
+                success = true;
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
+                if (e.getCause() instanceof AttributeNotFoundException) {
+                    for (Future<Boolean> future : futures) {
+                        future.cancel(true);
+                    }
+                    throw ((AttributeNotFoundException) e.getCause());
+                } else if (e.getCause() instanceof InvalidAttributeValueException) {
+                    for (Future<Boolean> future : futures) {
+                        future.cancel(true);
+                    }
+                    throw ((InvalidAttributeValueException) e.getCause());
+                }
                 log.debug(String.format("%s experienced exception when setting attribute %s, %s, %s, %s",
                                         this, pattern, queryExpr, attribute), e);
             }
         }
-        throw new InstanceNotFoundException(
-                                            String.format("Instance not found: %s, %s",
-                                                          pattern, queryExpr));
+        if (!success) {
+            throw new InstanceNotFoundException(
+                                                String.format("Instance not found: %s, %s",
+                                                              pattern,
+                                                              queryExpr));
+        }
     }
 
     /**
