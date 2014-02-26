@@ -35,11 +35,6 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.hellblazer</groupId>
-			<artifactId>service-discovery</artifactId>
-			<version>1.0.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.hellblazer</groupId>
 			<artifactId>nexus</artifactId>
 			<version>1.0.2-SNAPSHOT</version>
 		</dependency>

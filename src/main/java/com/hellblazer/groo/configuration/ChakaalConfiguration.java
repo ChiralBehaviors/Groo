@@ -1,4 +1,4 @@
-/* 
+/*
  * (C) Copyright 2014 Chiral Behaviors, All Rights Reserved
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,23 @@
 
 package com.hellblazer.groo.configuration;
 
+import java.util.Map;
+
+import javax.security.auth.Subject;
+
+import com.hellblazer.groo.Chakaal;
+import com.hellblazer.groo.Groo;
+import com.hellblazer.slp.config.ServiceScopeConfiguration;
 
 /**
  * @author hhildebrand
  * 
  */
-public class NetworkBuilderConfiguration {
-    public String   networkPattern;
-    public String[] parentProperties = new String[] {};
+public class ChakaalConfiguration {
+    public ServiceScopeConfiguration discovery;
+    public Map<String, ?>            sourceMap;
+
+    public Chakaal construct(Groo groo, Subject subject) throws Exception {
+        return new Chakaal(groo, discovery.construct(), sourceMap, subject);
+    }
 }

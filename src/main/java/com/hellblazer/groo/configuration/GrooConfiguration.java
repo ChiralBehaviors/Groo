@@ -1,5 +1,5 @@
-/** 
- * (C) Copyright 2014 Hal Hildebrand, All Rights Reserved
+/*
+ * (C) Copyright 2014 Chiral Behaviors, All Rights Reserved
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,30 @@
 
 package com.hellblazer.groo.configuration;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+
+import com.hellblazer.groo.Groo;
+
 /**
  * @author hhildebrand
- *
+ * 
  */
 public class GrooConfiguration {
-    
+    public String                            description     = "Every day I be wandering...";
+    public List<NetworkBuilderConfiguration> networkBuilders = Collections.emptyList();
+
+    public Groo construct() throws MalformedObjectNameException,
+                           NullPointerException, IOException {
+        Groo groo = new Groo(description);
+        for (NetworkBuilderConfiguration config : networkBuilders) {
+            groo.addNetworkBuilder(ObjectName.getInstance(config.networkPattern),
+                                   null, config.parentProperties);
+        }
+        return groo;
+    }
 }
