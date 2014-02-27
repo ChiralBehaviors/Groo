@@ -1,9 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.hellblazer</groupId>
-	<artifactId>groo.app</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<artifactId>groo</artifactId>
 	<name>Groo - A hierarchical JMX aggregator</name>
 	<description>A damn efficient, heirarchical aggregator for JMX mbeans</description>
 
@@ -23,58 +21,46 @@
 		<developer>
 			<name>Hal Hildebrand</name>
 			<email>hal.hildebrand@me.com</email>
-			<organization>Chiral Behaviors</organization>
+			<organization>Hellbound Productions</organization>
 		</developer>
 	</developers>
 
 	<scm>
-		<connection>git://github.com/Hellblazer/Groo.git</connection>
+		<connection>git://github.com/Hellblazer/Nexus.git</connection>
 		<url>https://github.com/Hellblazer/Groo</url>
 	</scm>
 
-	<modules>
-		<module>groo</module>
-	</modules>
-	
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.hellblazer</groupId>
-				<artifactId>nexus</artifactId>
-				<version>1.0.2-SNAPSHOT</version>
-			</dependency>
-			<dependency>
-				<groupId>junit</groupId>
-				<artifactId>junit</artifactId>
-				<version>4.11</version>
-				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>com.hellblazer</groupId>
-				<artifactId>utils</artifactId>
-				<version>0.0.2-SNAPSHOT</version>
-				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.mockito</groupId>
-				<artifactId>mockito-all</artifactId>
-				<version>1.9.5</version>
-				<scope>test</scope>
-			</dependency>
-			<dependency>
-				<groupId>com.fasterxml.jackson.dataformat</groupId>
-				<artifactId>jackson-dataformat-yaml</artifactId>
-				<version>2.2.2</version>
-				<optional>true</optional>
-			</dependency>
-			<dependency>
-				<groupId>com.fasterxml.jackson.core</groupId>
-				<artifactId>jackson-databind</artifactId>
-				<version>2.2.2</version>
-				<optional>true</optional>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
+	<dependencies>
+		<dependency>
+			<groupId>com.hellblazer</groupId>
+			<artifactId>nexus</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.hellblazer</groupId>
+			<artifactId>utils</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-yaml</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<optional>true</optional>
+		</dependency>
+	</dependencies>
 
 	<repositories>
 		<repository>
@@ -114,5 +100,9 @@
 			</plugin>
 		</plugins>
 	</build>
-	<packaging>pom</packaging>
+	<parent>
+		<groupId>com.hellblazer</groupId>
+		<version>0.0.1-SNAPSHOT</version>
+		<artifactId>groo.app</artifactId>
+	</parent>
 </project>
