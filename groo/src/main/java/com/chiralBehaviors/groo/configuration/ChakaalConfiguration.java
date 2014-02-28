@@ -16,12 +16,23 @@
 
 package com.chiralBehaviors.groo.configuration;
 
+import java.lang.management.ManagementFactory;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
 import javax.security.auth.Subject;
 
 import com.chiralBehaviors.groo.Chakaal;
 import com.chiralBehaviors.groo.Groo;
+import com.hellblazer.slp.InvalidSyntaxException;
+import com.hellblazer.slp.ServiceScope;
 import com.hellblazer.slp.config.ServiceScopeConfiguration;
 
 /**
@@ -29,10 +40,48 @@ import com.hellblazer.slp.config.ServiceScopeConfiguration;
  * 
  */
 public class ChakaalConfiguration {
+    public String                    chakaalName    = "com.chiralBehaviors.groo:type=chakaal";
     public ServiceScopeConfiguration discovery;
+    public GrooConfiguration         groo;
+    public String                    grooName       = "com.chiralBehaviors.groo:type=groo";
+    public List<String>              queries        = Collections.emptyList();
+    public Map<String, String>       serviceQueries = Collections.emptyMap();
+    public List<String>              services       = Collections.emptyList();
     public Map<String, ?>            sourceMap;
+    public Subject                   subject;
 
-    public Chakaal construct(Groo groo, Subject subject) throws Exception {
-        return new Chakaal(groo, discovery.construct(), sourceMap, subject);
+    public Chakaal construct() throws Exception {
+        return construct(ManagementFactory.getPlatformMBeanServer());
+    }
+
+    public Chakaal construct(MBeanServer mbs) throws Exception {
+        return construct(mbs, groo.construct(), subject);
+    }
+
+    public Chakaal construct(MBeanServer mbs, Groo groo, Subject subject)
+                                                                         throws Exception {
+        ServiceScope scope = discovery.construct();
+        return construct(mbs, groo, subject, scope);
+    }
+
+    public Chakaal construct(MBeanServer mbs, Groo groo, Subject subject,
+                             ServiceScope scope) throws InvalidSyntaxException,
+                                                InstanceAlreadyExistsException,
+                                                MBeanRegistrationException,
+                                                NotCompliantMBeanException,
+                                                MalformedObjectNameException {
+        Chakaal chakaal = new Chakaal(groo, scope, sourceMap, subject);
+        for (String service : services) {
+            chakaal.listenForService(service);
+        }
+        for (String query : queries) {
+            chakaal.listenFor(query);
+        }
+        for (Map.Entry<String, String> entry : serviceQueries.entrySet()) {
+            chakaal.listenForService(entry.getKey(), entry.getValue());
+        }
+        mbs.registerMBean(groo, ObjectName.getInstance(grooName));
+        mbs.registerMBean(chakaal, ObjectName.getInstance(chakaalName));
+        return chakaal;
     }
 }

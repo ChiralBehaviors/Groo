@@ -36,7 +36,7 @@
 		<module>groo</module>
 		<module>jmx-groo-discovery</module>
 	</modules>
-	
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -73,6 +73,11 @@
 				<artifactId>jackson-databind</artifactId>
 				<version>2.2.2</version>
 				<optional>true</optional>
+			</dependency>
+			<dependency>
+				<groupId>com.hellblazer</groupId>
+				<artifactId>groo</artifactId>
+				<version>${project.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
