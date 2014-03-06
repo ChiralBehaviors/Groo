@@ -43,7 +43,6 @@
 		<dependency>
 			<groupId>com.hellblazer</groupId>
 			<artifactId>utils</artifactId>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mockito</groupId>
