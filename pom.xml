@@ -37,6 +37,17 @@
 		<module>jmx-groo-discovery</module>
 	</modules>
 
+	<repositories>
+		<repository>
+			<id>hellblazer-release</id>
+			<url>https://repository-hal900000.forge.cloudbees.com/release/</url>
+		</repository>
+		<repository>
+			<id>hellblazer-snapshots</id>
+			<url>https://repository-hal900000.forge.cloudbees.com/snapshot/</url>
+		</repository>
+	</repositories>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -54,7 +65,7 @@
 				<groupId>com.hellblazer</groupId>
 				<artifactId>utils</artifactId>
 				<version>0.0.2-SNAPSHOT</version>
-				<scope>test</scope>
+				<scope>compile</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.mockito</groupId>
@@ -81,17 +92,6 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-
-	<repositories>
-		<repository>
-			<id>hellblazer-release</id>
-			<url>https://repository-hal900000.forge.cloudbees.com/release/</url>
-		</repository>
-		<repository>
-			<id>hellblazer-snapshots</id>
-			<url>https://repository-hal900000.forge.cloudbees.com/snapshot/</url>
-		</repository>
-	</repositories>
 
 	<build>
 		<plugins>
