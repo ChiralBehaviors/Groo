@@ -16,6 +16,8 @@
 
 package com.chiralBehaviors.groo.configuration;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
 import java.util.List;
@@ -29,8 +31,13 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 import javax.security.auth.Subject;
 
+import com.chiralBehaviors.disovery.configuration.DiscoveryModule;
 import com.chiralBehaviors.groo.Chakaal;
 import com.chiralBehaviors.groo.Groo;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.hellblazer.slp.InvalidSyntaxException;
 import com.hellblazer.slp.ServiceScope;
 import com.hellblazer.slp.config.ServiceScopeConfiguration;
@@ -49,6 +56,15 @@ public class ChakaalConfiguration {
     public List<String>              services       = Collections.emptyList();
     public Map<String, ?>            sourceMap;
     public Subject                   subject;
+
+    public static ChakaalConfiguration fromYaml(InputStream yaml)
+                                                                 throws JsonParseException,
+                                                                 JsonMappingException,
+                                                                 IOException {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.registerModule(new DiscoveryModule());
+        return mapper.readValue(yaml, ChakaalConfiguration.class);
+    }
 
     public Chakaal construct() throws Exception {
         return construct(ManagementFactory.getPlatformMBeanServer());

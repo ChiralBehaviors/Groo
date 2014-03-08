@@ -39,8 +39,8 @@
 
 	<repositories>
 		<repository>
-			<id>hellblazer-release</id>
-			<url>https://repository-hal900000.forge.cloudbees.com/release/</url>
+			<id>ChiralBehaviors-Snapshots</id>
+			<url>http://repository-chiralbehaviors.forge.cloudbees.com/snapshot/</url>
 		</repository>
 		<repository>
 			<id>hellblazer-snapshots</id>
@@ -50,11 +50,6 @@
 
 	<dependencyManagement>
 		<dependencies>
-			<dependency>
-				<groupId>com.hellblazer</groupId>
-				<artifactId>nexus</artifactId>
-				<version>1.0.2-SNAPSHOT</version>
-			</dependency>
 			<dependency>
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
@@ -89,6 +84,11 @@
 				<groupId>com.hellblazer</groupId>
 				<artifactId>groo</artifactId>
 				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.chiralBehaviors</groupId>
+				<artifactId>discovery-module</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

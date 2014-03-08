@@ -17,13 +17,19 @@
 package com.chiralBehaviors.groo.configuration;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import com.chiralBehaviors.disovery.configuration.DiscoveryModule;
 import com.chiralBehaviors.groo.Groo;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 /**
  * @author hhildebrand
@@ -32,6 +38,15 @@ import com.chiralBehaviors.groo.Groo;
 public class GrooConfiguration {
     public String                            description     = "Every day I be wandering...";
     public List<NetworkBuilderConfiguration> networkBuilders = Collections.emptyList();
+
+    public static GrooConfiguration fromYaml(InputStream yaml)
+                                                              throws JsonParseException,
+                                                              JsonMappingException,
+                                                              IOException {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        mapper.registerModule(new DiscoveryModule());
+        return mapper.readValue(yaml, GrooConfiguration.class);
+    }
 
     public Groo construct() throws MalformedObjectNameException,
                            NullPointerException, IOException {

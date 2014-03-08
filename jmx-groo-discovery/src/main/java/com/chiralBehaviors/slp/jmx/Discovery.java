@@ -15,7 +15,6 @@
 package com.chiralBehaviors.slp.jmx;
 
 import com.chiralBehaviors.groo.configuration.ChakaalConfiguration;
-import com.chiralBehaviors.groo.configuration.YamlHelper;
 import com.hellblazer.utils.Utils;
 
 /**
@@ -35,8 +34,8 @@ public class Discovery {
             System.err.println("Usage: Discovery <config resource>");
             System.exit(1);
         }
-        ChakaalConfiguration config = YamlHelper.chakaalFromYaml(Utils.resolveResource(ChakaalConfiguration.class,
-                                                                                       resource));
+        ChakaalConfiguration config = ChakaalConfiguration.fromYaml(Utils.resolveResource(ChakaalConfiguration.class,
+                                                                                          resource));
         config.construct();
     }
 }
