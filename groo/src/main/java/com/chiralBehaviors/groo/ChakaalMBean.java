@@ -22,7 +22,9 @@ import com.hellblazer.slp.InvalidSyntaxException;
  * @author hhildebrand
  * 
  */
-public interface ChakallMBean {
+public interface ChakaalMBean {
+
+    String[] getQueries();
 
     void listenFor(String query) throws InvalidSyntaxException;
 

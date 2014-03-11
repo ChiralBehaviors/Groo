@@ -49,7 +49,7 @@ import com.hellblazer.slp.config.ServiceScopeConfiguration;
 public class ChakaalConfiguration {
     public String                    chakaalName    = "com.chiralBehaviors.groo:type=chakaal";
     public ServiceScopeConfiguration discovery;
-    public GrooConfiguration         groo;
+    public GrooConfiguration         groo           = new GrooConfiguration();
     public String                    grooName       = "com.chiralBehaviors.groo:type=groo";
     public List<String>              queries        = Collections.emptyList();
     public Map<String, String>       serviceQueries = Collections.emptyMap();

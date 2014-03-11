@@ -117,6 +117,18 @@ public class Groo implements GrooMBean, MBeanRegistration {
         return mbs;
     }
 
+    /* (non-Javadoc)
+     * @see com.chiralBehaviors.groo.GrooMBean#getNetworkBuilderFilters()
+     */
+    @Override
+    public String[] getNetworkBuilderFilters() {
+        List<String> filters = new ArrayList<>();
+        for (NetworkBuilder builder : builders.values()) {
+            filters.add(builder.getFilter().toString());
+        }
+        return filters.toArray(new String[] {});
+    }
+
     public List<Node> getParents() {
         return new ArrayList<Node>(parents);
     }

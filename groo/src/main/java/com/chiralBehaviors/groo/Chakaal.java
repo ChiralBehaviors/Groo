@@ -20,6 +20,8 @@ import static com.hellblazer.slp.ServiceScope.SERVICE_TYPE;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,7 +51,7 @@ import com.hellblazer.slp.ServiceURL;
  * @author hhildebrand
  * 
  */
-public class Chakaal implements ChakallMBean {
+public class Chakaal implements ChakaalMBean {
     private class Listener implements ServiceListener {
 
         /*
@@ -97,6 +99,25 @@ public class Chakaal implements ChakallMBean {
         this.scope = scope;
         this.sourceMap = sourceMap;
         this.delegationSubject = delegationSubject;
+    }
+
+    /**
+     * @return the groo
+     */
+    public Groo getGroo() {
+        return groo;
+    }
+
+    /* (non-Javadoc)
+     * @see com.chiralBehaviors.groo.ChakaalMBean#getQueries()
+     */
+    @Override
+    public String[] getQueries() {
+        List<String> queries = new ArrayList<>();
+        for (String query : outstandingQueries.keySet()) {
+            queries.add(query);
+        }
+        return queries.toArray(new String[] {});
     }
 
     /* (non-Javadoc)
