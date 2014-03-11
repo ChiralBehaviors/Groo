@@ -77,6 +77,7 @@ public class ChakaalConfiguration {
     public Chakaal construct(MBeanServer mbs, Groo groo, Subject subject)
                                                                          throws Exception {
         ServiceScope scope = discovery.construct();
+        scope.start();
         return construct(mbs, groo, subject, scope);
     }
 

@@ -49,6 +49,10 @@ public class RegistrationFilter implements NotificationFilter, Serializable {
         handback = UUID.randomUUID();
     }
 
+    public String getFilterString() {
+        return "[" + sourcePattern + " | " + sourceQuery + "]";
+    }
+
     /**
      * @return the handback
      */

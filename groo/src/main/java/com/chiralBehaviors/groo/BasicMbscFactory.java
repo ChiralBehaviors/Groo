@@ -27,7 +27,6 @@ public class BasicMbscFactory extends MbscFactory {
         super(groo);
         this.connector = connector;
         subject = delegationSubject;
-        connection.set(null);
         failed.set(false);
     }
 
@@ -49,9 +48,17 @@ public class BasicMbscFactory extends MbscFactory {
         if (failed.get()) {
             throw new IOException("connection already failed");
         }
-        connection.compareAndSet(null,
-                                 connector.getMBeanServerConnection(subject));
+        connection.compareAndSet(null, getConnection());
         return connection.get();
+    }
+
+    /**
+     * @return
+     * @throws IOException
+     */
+    public MBeanServerConnection getConnection() throws IOException {
+        connector.connect();
+        return connector.getMBeanServerConnection(subject);
     }
 
     /* (non-Javadoc)

@@ -102,6 +102,13 @@ public class NetworkBuilder {
         return filter;
     }
 
+    /**
+     * @return the managed
+     */
+    public Set<ObjectName> getManaged() {
+        return managed;
+    }
+
     /* (non-Javadoc)
      * @see java.lang.Object#toString()
      */
