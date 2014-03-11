@@ -110,6 +110,20 @@ public class Groo implements GrooMBean, MBeanRegistration {
         return description;
     }
 
+    /* (non-Javadoc)
+     * @see com.chiralBehaviors.groo.GrooMXBean#getManagedNetworks()
+     */
+    @Override
+    public String[] getManagedNetworks() {
+        List<String> managed = new ArrayList<>();
+        for (NetworkBuilder builder : builders.values()) {
+            for (ObjectName name : builder.getManaged()) {
+                managed.add(name.getCanonicalName());
+            }
+        }
+        return managed.toArray(new String[] {});
+    }
+
     /**
      * @return the mbs
      */
@@ -344,19 +358,5 @@ public class Groo implements GrooMBean, MBeanRegistration {
         if (builder != null) {
             builder.addParent(notification.getMBeanName());
         }
-    }
-
-    /* (non-Javadoc)
-     * @see com.chiralBehaviors.groo.GrooMXBean#getManagedNetworks()
-     */
-    @Override
-    public String[] getManagedNetworks() {
-        List<String> managed = new ArrayList<>();
-        for (NetworkBuilder builder : builders.values()) {
-            for (ObjectName name : builder.getManaged()) {
-                managed.add(name.getCanonicalName());
-            }
-        }
-        return managed.toArray(new String[] {});
     }
 }

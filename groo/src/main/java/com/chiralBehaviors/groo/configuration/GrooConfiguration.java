@@ -36,9 +36,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
  * 
  */
 public class GrooConfiguration {
-    public String                            description     = "Every day I be wandering...";
-    public List<NetworkBuilderConfiguration> networkBuilders = Collections.emptyList();
-
     public static GrooConfiguration fromYaml(InputStream yaml)
                                                               throws JsonParseException,
                                                               JsonMappingException,
@@ -47,6 +44,10 @@ public class GrooConfiguration {
         mapper.registerModule(new DiscoveryModule());
         return mapper.readValue(yaml, GrooConfiguration.class);
     }
+
+    public String                            description     = "Every day I be wandering...";
+
+    public List<NetworkBuilderConfiguration> networkBuilders = Collections.emptyList();
 
     public Groo construct() throws MalformedObjectNameException,
                            NullPointerException, IOException {

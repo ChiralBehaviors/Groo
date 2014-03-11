@@ -16,7 +16,6 @@
 
 package com.chiralBehaviors.groo.configuration;
 
-
 /**
  * @author hhildebrand
  * 

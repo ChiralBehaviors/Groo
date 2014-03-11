@@ -30,6 +30,15 @@ public class BasicMbscFactory extends MbscFactory {
         failed.set(false);
     }
 
+    /**
+     * @return
+     * @throws IOException
+     */
+    public MBeanServerConnection getConnection() throws IOException {
+        connector.connect();
+        return connector.getMBeanServerConnection(subject);
+    }
+
     @Override
     public String getConnectionId() throws IOException {
         if (failed.get()) {
@@ -50,15 +59,6 @@ public class BasicMbscFactory extends MbscFactory {
         }
         connection.compareAndSet(null, getConnection());
         return connection.get();
-    }
-
-    /**
-     * @return
-     * @throws IOException
-     */
-    public MBeanServerConnection getConnection() throws IOException {
-        connector.connect();
-        return connector.getMBeanServerConnection(subject);
     }
 
     /* (non-Javadoc)

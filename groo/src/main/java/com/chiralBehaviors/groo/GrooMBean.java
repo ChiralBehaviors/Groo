@@ -26,9 +26,9 @@ public interface GrooMBean {
 
     public String getDescription();
 
+    public String[] getManagedNetworks();
+
     public String[] getNetworkBuilderFilters();
 
     public void stop() throws IOException;
-
-    public String[] getManagedNetworks();
 }

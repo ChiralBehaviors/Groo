@@ -30,9 +30,6 @@ import javax.management.remote.JMXServiceURL;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import com.chiralBehaviors.groo.BasicMbscFactory;
-import com.chiralBehaviors.groo.Chakaal;
-import com.chiralBehaviors.groo.Groo;
 import com.hellblazer.slp.ServiceEvent;
 import com.hellblazer.slp.ServiceEvent.EventType;
 import com.hellblazer.slp.ServiceListener;

@@ -47,16 +47,6 @@ import com.hellblazer.slp.config.ServiceScopeConfiguration;
  * 
  */
 public class ChakaalConfiguration {
-    public String                    chakaalName    = "com.chiralBehaviors.groo:type=chakaal";
-    public ServiceScopeConfiguration discovery;
-    public GrooConfiguration         groo           = new GrooConfiguration();
-    public String                    grooName       = "com.chiralBehaviors.groo:type=groo";
-    public List<String>              queries        = Collections.emptyList();
-    public Map<String, String>       serviceQueries = Collections.emptyMap();
-    public List<String>              services       = Collections.emptyList();
-    public Map<String, ?>            sourceMap;
-    public Subject                   subject;
-
     public static ChakaalConfiguration fromYaml(InputStream yaml)
                                                                  throws JsonParseException,
                                                                  JsonMappingException,
@@ -65,6 +55,17 @@ public class ChakaalConfiguration {
         mapper.registerModule(new DiscoveryModule());
         return mapper.readValue(yaml, ChakaalConfiguration.class);
     }
+
+    public String                    chakaalName    = "com.chiralBehaviors.groo:type=chakaal";
+    public ServiceScopeConfiguration discovery;
+    public GrooConfiguration         groo           = new GrooConfiguration();
+    public String                    grooName       = "com.chiralBehaviors.groo:type=groo";
+    public List<String>              queries        = Collections.emptyList();
+    public Map<String, String>       serviceQueries = Collections.emptyMap();
+    public List<String>              services       = Collections.emptyList();
+    public Map<String, ?>            sourceMap;
+
+    public Subject                   subject;
 
     public Chakaal construct() throws Exception {
         return construct(ManagementFactory.getPlatformMBeanServer());

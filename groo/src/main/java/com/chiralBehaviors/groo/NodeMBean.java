@@ -65,14 +65,14 @@ public interface NodeMBean {
                                                         throws InstanceNotFoundException,
                                                         IOException;
 
-    public Map<ObjectName, Object> getAttribute(ObjectName name,
-                                                QueryExp queryExpr,
-                                                String attribute)
-                                                                 throws MBeanException,
-                                                                 AttributeNotFoundException,
-                                                                 InstanceNotFoundException,
-                                                                 ReflectionException,
-                                                                 IOException;
+    public <T> Map<ObjectName, T> getAttribute(ObjectName name,
+                                               QueryExp queryExpr,
+                                               String attribute)
+                                                                throws MBeanException,
+                                                                AttributeNotFoundException,
+                                                                InstanceNotFoundException,
+                                                                ReflectionException,
+                                                                IOException;
 
     public Object getAttribute(ObjectName name, String attribute)
                                                                  throws MBeanException,
@@ -212,11 +212,11 @@ public interface NodeMBean {
 
     int getMBeanCount(ObjectName filter, QueryExp queryExpr);
 
-    Map<ObjectName, Object> invoke(ObjectName name, QueryExp queryExpr,
-                                   String operationName, Object params[],
-                                   String signature[])
-                                                      throws InstanceNotFoundException,
-                                                      MBeanException,
-                                                      ReflectionException,
-                                                      IOException;
+    <T> Map<ObjectName, T> invoke(ObjectName name, QueryExp queryExpr,
+                                  String operationName, Object params[],
+                                  String signature[])
+                                                     throws InstanceNotFoundException,
+                                                     MBeanException,
+                                                     ReflectionException,
+                                                     IOException;
 }

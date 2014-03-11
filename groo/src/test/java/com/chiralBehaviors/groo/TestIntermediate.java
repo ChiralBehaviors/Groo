@@ -30,9 +30,6 @@ import javax.management.ObjectName;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.chiralBehaviors.groo.Node;
-import com.chiralBehaviors.groo.NodeMBean;
-
 /**
  * @author hhildebrand
  * 
