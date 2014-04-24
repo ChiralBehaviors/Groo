@@ -19,6 +19,7 @@ package com.chiralBehaviors.groo;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -66,8 +67,7 @@ public class NetworkBuilder {
         if (nodeName == null) {
             return;
         }
-        Node parent = new Node(filter.getSourcePattern(),
-                               filter.getSourceQuery());
+        Node parent = new Node(getChildSearchName(sourceName), null);
         if (!managed.add(nodeName)) {
             log.info(String.format("Already tracked %s on: %s", sourceName,
                                    this));
@@ -122,6 +122,25 @@ public class NetworkBuilder {
         Hashtable<String, String> properties = new Hashtable<String, String>();
         for (String property : parentProperties) {
             properties.put(property, sourceName.getKeyProperty(property));
+        }
+        try {
+            return new ObjectName(sourceName.getDomain(), properties);
+        } catch (MalformedObjectNameException e) {
+            log.error(String.format("error in creating parent node name from: %s.  parent properties: %s",
+                                    sourceName, parentProperties), e);
+            return null;
+        }
+    }
+
+    private ObjectName getChildSearchName(ObjectName sourceName) {
+        Hashtable<String, String> properties = new Hashtable<String, String>();
+        for (String property : parentProperties) {
+            properties.put(property, sourceName.getKeyProperty(property));
+        }
+        for (Map.Entry<String, String> entry : filter.getSourcePattern().getKeyPropertyList().entrySet()) {
+            if (!properties.containsKey(entry.getKey())) {
+                properties.put(entry.getKey(), entry.getValue());
+            }
         }
         try {
             return new ObjectName(sourceName.getDomain(), properties);

@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.management.InstanceNotFoundException;
@@ -53,7 +54,7 @@ public class Groo implements GrooMBean, MBeanRegistration {
     private final String                                      description;
     private final ConcurrentMap<UUID, Node>                   filters  = new ConcurrentHashMap<>();
     private MBeanServer                                       mbs;
-    private final List<Node>                                  parents  = new CopyOnWriteArrayList<>();
+    private final Set<Node>                                   parents  = new CopyOnWriteArraySet<>();
 
     public Groo(String description) {
         this.description = description;
@@ -93,8 +94,10 @@ public class Groo implements GrooMBean, MBeanRegistration {
     }
 
     public void addParent(Node parent) throws IOException {
+        if (!parents.add(parent)) {
+            return;
+        }
         log.info(String.format("Adding parent: %s on: %s", parent, this));
-        parents.add(parent);
         filters.put(parent.getFilter().getHandback(), parent);
         for (MbscFactory factory : children.keySet()) {
             update(factory, parent);
@@ -211,10 +214,12 @@ public class Groo implements GrooMBean, MBeanRegistration {
             return;
         }
         MbscNodeWrapper child = new MbscNodeWrapper(factory, childName);
+        if (!parent.addChild(child)) {
+            return;
+        }
         log.info(String.format("Adding child: %s to parent: %s on: %s", child,
                                parent, factory));
         children.get(factory).add(child);
-        parent.addChild(child);
     }
 
     private void cleanup(MbscFactory factory) {

@@ -38,11 +38,8 @@ public class RegistrationFilter implements NotificationFilter, Serializable {
 
     private UUID              handback;
     private ObjectName        sourcePattern;
-    private QueryExp          sourceQuery;
-
-    public RegistrationFilter() {
-    }
-
+    private QueryExp          sourceQuery; 
+    
     public RegistrationFilter(ObjectName sourcePattern, QueryExp sourceQuery) {
         this.sourcePattern = sourcePattern;
         this.sourceQuery = sourceQuery;

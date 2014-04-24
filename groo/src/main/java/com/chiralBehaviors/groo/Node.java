@@ -84,8 +84,8 @@ public class Node implements NodeMBean, MBeanRegistration {
     /**
      * @param child
      */
-    public void addChild(NodeMBean child) {
-        children.add(child);
+    public boolean addChild(NodeMBean child) {
+        return children.add(child);
     }
 
     /**
