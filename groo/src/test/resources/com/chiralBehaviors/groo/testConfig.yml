@@ -1,5 +1,4 @@
-discovery:
-    type: gossipScope
+discovery: !gossipScope
     gossip:
         seeds: 
             - localhost:6754
