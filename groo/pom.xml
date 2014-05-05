@@ -37,10 +37,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.hellblazer</groupId>
-			<artifactId>utils</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>
 			<scope>test</scope>

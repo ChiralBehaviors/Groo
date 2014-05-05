@@ -62,12 +62,6 @@
 				<scope>test</scope>
 			</dependency>
 			<dependency>
-				<groupId>com.hellblazer</groupId>
-				<artifactId>utils</artifactId>
-				<version>0.0.2</version>
-				<scope>compile</scope>
-			</dependency>
-			<dependency>
 				<groupId>org.mockito</groupId>
 				<artifactId>mockito-all</artifactId>
 				<version>1.9.5</version>
