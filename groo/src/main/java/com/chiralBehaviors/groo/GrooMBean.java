@@ -26,6 +26,8 @@ public interface GrooMBean {
 
     public String getDescription();
 
+    public String[] getParentNames();
+
     public String[] getManagedNetworks();
 
     public String[] getNetworkBuilderFilters();

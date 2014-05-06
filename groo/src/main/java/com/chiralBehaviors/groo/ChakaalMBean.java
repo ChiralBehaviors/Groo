@@ -23,6 +23,8 @@ import com.hellblazer.slp.InvalidSyntaxException;
  * 
  */
 public interface ChakaalMBean {
+    
+    String[] getDiscovered();
 
     String[] getQueries();
 

@@ -364,4 +364,16 @@ public class Groo implements GrooMBean, MBeanRegistration {
             builder.addParent(notification.getMBeanName());
         }
     }
+
+    /* (non-Javadoc)
+     * @see com.chiralBehaviors.groo.GrooMBean#getParentNames()
+     */
+    @Override
+    public String[] getParentNames() {
+        List<String> names = new ArrayList<>();
+        for (Node parent : parents) {
+            names.add(parent.getName().getCanonicalName());
+        }
+        return null;
+    }
 }
