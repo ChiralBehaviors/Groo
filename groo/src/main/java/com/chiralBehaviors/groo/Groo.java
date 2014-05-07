@@ -374,6 +374,6 @@ public class Groo implements GrooMBean, MBeanRegistration {
         for (Node parent : parents) {
             names.add(parent.getName().getCanonicalName());
         }
-        return null;
+        return names.toArray(new String[names.size()]);
     }
 }

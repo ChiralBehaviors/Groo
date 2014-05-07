@@ -84,6 +84,9 @@ public class NetworkBuilder {
                 log.error(String.format("Unable to register new parent: %s",
                                         nodeName), e);
             }
+        } else {
+            log.info(String.format("No MBeanServer for groo, unable to register: %s",
+                                   nodeName));
         }
 
         try {
