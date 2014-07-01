@@ -411,15 +411,28 @@ public class Node implements NodeMBean, MBeanRegistration {
                                                                            generator,
                                                                            pattern,
                                                                            queryExpr);
-
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                attributes.putAll(completionService.take().get());
-            } catch (InterruptedException e) {
-                return Collections.emptyMap();
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when collecting attributes %s, %s",
-                                       this, pattern, queryExpr), e);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    attributes.putAll(completionService.take().get());
+                } catch (InterruptedException e) {
+                    return Collections.emptyMap();
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ReflectionException) {
+                        throw (ReflectionException) e.getCause();
+                    }
+                    if (e.getCause() instanceof MBeanException) {
+                        throw (MBeanException) e.getCause();
+                    }
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        log.warn(String.format("%s experienced exception when collecting attributes %s, %s",
+                                               this, pattern, queryExpr), e);
+                    }
+                }
+            }
+        } finally {
+            for (Future<?> future : futures) {
+                future.cancel(true);
             }
         }
         if (attributes.size() == 0) {
@@ -483,6 +496,12 @@ public class Node implements NodeMBean, MBeanRegistration {
                 } catch (InterruptedException e) {
                     return Collections.emptyMap();
                 } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ReflectionException) {
+                        throw (ReflectionException) e.getCause();
+                    }
+                    if (e.getCause() instanceof MBeanException) {
+                        throw (MBeanException) e.getCause();
+                    }
                     if (e.getCause() instanceof AttributeNotFoundException) {
                         throw (AttributeNotFoundException) e.getCause();
                     } else if (!(e.getCause() instanceof InstanceNotFoundException)) {
@@ -510,7 +529,8 @@ public class Node implements NodeMBean, MBeanRegistration {
                                                                          final String[] attributes)
                                                                                                    throws InstanceNotFoundException,
                                                                                                    ReflectionException,
-                                                                                                   IOException {
+                                                                                                   IOException,
+                                                                                                   MBeanException {
         Map<ObjectName, OperationResult<AttributeList>> attrs = new HashMap<>();
         ExecutorCompletionService<Map<ObjectName, OperationResult<AttributeList>>> completionService = new ExecutorCompletionService<>(
                                                                                                                                        executor);
@@ -553,9 +573,17 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return Collections.emptyMap();
             } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when retriving attributes %s, %s, %s, %s",
-                                       this, pattern, queryExpr,
-                                       Arrays.asList(attributes)), e);
+                if (e.getCause() instanceof ReflectionException) {
+                    throw (ReflectionException) e.getCause();
+                }
+                if (e.getCause() instanceof MBeanException) {
+                    throw (MBeanException) e.getCause();
+                }
+                if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                    log.warn(String.format("%s experienced exception when retriving attributes %s, %s, %s, %s",
+                                           this, pattern, queryExpr,
+                                           Arrays.asList(attributes)), e);
+                }
             }
         }
         if (attrs.size() == 0) {
@@ -614,6 +642,9 @@ public class Node implements NodeMBean, MBeanRegistration {
                 } catch (InterruptedException e) {
                     return new AttributeList();
                 } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ReflectionException) {
+                        throw (ReflectionException) e.getCause();
+                    }
                     if (!(e.getCause() instanceof InstanceNotFoundException)) {
                         log.warn(String.format("%s experienced exception when retriving attributes %s, %s",
                                                this, objectName,
@@ -967,24 +998,36 @@ public class Node implements NodeMBean, MBeanRegistration {
                                                                            filter,
                                                                            queryExpr);
         Map<ObjectName, OperationResult<T>> results = new HashMap<>();
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                results.putAll(completionService.take().get());
-            } catch (InterruptedException e) {
-                return results;
-            } catch (ExecutionException e) {
-                if (!(e.getCause() instanceof InstanceNotFoundException)) {
-                    log.warn(String.format("%s experienced exception when invoking %s, %s, %s, %s, %s",
-                                           this,
-                                           filter,
-                                           queryExpr,
-                                           operationName,
-                                           params != null ? Arrays.asList(params)
-                                                         : null,
-                                           signature != null ? Arrays.asList(signature)
-                                                            : null),
-                             e.getCause());
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    results.putAll(completionService.take().get());
+                } catch (InterruptedException e) {
+                    return results;
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ReflectionException) {
+                        throw (ReflectionException) e.getCause();
+                    }
+                    if (e.getCause() instanceof MBeanException) {
+                        throw (MBeanException) e.getCause();
+                    }
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        log.warn(String.format("%s experienced exception when invoking %s, %s, %s, %s, %s",
+                                               this,
+                                               filter,
+                                               queryExpr,
+                                               operationName,
+                                               params != null ? Arrays.asList(params)
+                                                             : null,
+                                               signature != null ? Arrays.asList(signature)
+                                                                : null),
+                                 e.getCause());
+                    }
                 }
+            }
+        } finally {
+            for (Future<?> future : futures) {
+                future.cancel(true);
             }
         }
         if (results.size() == 0) {
@@ -1044,11 +1087,16 @@ public class Node implements NodeMBean, MBeanRegistration {
         try {
             for (int i = 0; i < futures.size(); i++) {
                 try {
-                    Object result = completionService.take().get();
-                    return result;
+                    return completionService.take().get();
                 } catch (InterruptedException e) {
                     return null;
                 } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ReflectionException) {
+                        throw (ReflectionException) e.getCause();
+                    }
+                    if (e.getCause() instanceof MBeanException) {
+                        throw (MBeanException) e.getCause();
+                    }
                     if (!(e.getCause() instanceof InstanceNotFoundException)) {
                         log.warn(String.format("%s experienced exception when invoking %s, %s, %s, %s",
                                                this,
@@ -1894,8 +1942,19 @@ public class Node implements NodeMBean, MBeanRegistration {
                 } catch (InterruptedException e) {
                     return;
                 } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ReflectionException) {
+                        throw (ReflectionException) e.getCause();
+                    }
+                    if (e.getCause() instanceof MBeanException) {
+                        throw (MBeanException) e.getCause();
+                    }
+                    if (e.getCause() instanceof InvalidAttributeValueException) {
+                        throw (InvalidAttributeValueException) e.getCause();
+                    }
                     if (e.getCause() instanceof AttributeNotFoundException) {
-                    } else if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        throw (AttributeNotFoundException) e.getCause();
+                    }
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
                         log.warn(String.format("%s experienced exception when setting attribute %s, %s",
                                                this, objectName, attribute), e);
 
@@ -1967,14 +2026,23 @@ public class Node implements NodeMBean, MBeanRegistration {
                 } catch (InterruptedException e) {
                     return;
                 } catch (ExecutionException e) {
-                    if (e.getCause() instanceof AttributeNotFoundException) {
-                        throw (AttributeNotFoundException) e.getCause();
-                    } else if (e.getCause() instanceof InvalidAttributeValueException) {
+                    if (e.getCause() instanceof ReflectionException) {
+                        throw (ReflectionException) e.getCause();
+                    }
+                    if (e.getCause() instanceof MBeanException) {
+                        throw (MBeanException) e.getCause();
+                    }
+                    if (e.getCause() instanceof InvalidAttributeValueException) {
                         throw (InvalidAttributeValueException) e.getCause();
                     }
-                    log.warn(String.format("%s experienced exception when setting attribute %s, %s, %s, %s",
-                                           this, pattern, queryExpr, attribute),
-                             e);
+                    if (e.getCause() instanceof AttributeNotFoundException) {
+                        throw (AttributeNotFoundException) e.getCause();
+                    }
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        log.warn(String.format("%s experienced exception when setting attribute %s, %s, %s, %s",
+                                               this, pattern, queryExpr,
+                                               attribute), e);
+                    }
                 }
             }
         } finally {
@@ -2039,6 +2107,9 @@ public class Node implements NodeMBean, MBeanRegistration {
                 } catch (InterruptedException e) {
                     return new AttributeList();
                 } catch (ExecutionException e) {
+                    if (e.getCause() instanceof ReflectionException) {
+                        throw (ReflectionException) e.getCause();
+                    }
                     if (!(e.getCause() instanceof InstanceNotFoundException)) {
                         log.warn(String.format("%s experienced exception when setting attributes %s, %s",
                                                this, objectName, attributes), e);
@@ -2107,9 +2178,14 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return Collections.emptyMap();
             } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when setting attributes %s, %s, %s, %s",
-                                       this, pattern, queryExpr,
-                                       Arrays.asList(attributes)), e);
+                if (e.getCause() instanceof ReflectionException) {
+                    throw (ReflectionException) e.getCause();
+                }
+                if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                    log.warn(String.format("%s experienced exception when setting attributes %s, %s, %s, %s",
+                                           this, pattern, queryExpr,
+                                           Arrays.asList(attributes)), e);
+                }
             }
         }
         if (attrs.size() == 0) {

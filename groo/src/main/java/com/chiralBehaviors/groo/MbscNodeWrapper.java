@@ -222,7 +222,7 @@ public class MbscNodeWrapper implements NodeMBean {
                                                                          String[] attributes)
                                                                                              throws InstanceNotFoundException,
                                                                                              ReflectionException,
-                                                                                             IOException {
+                                                                                             IOException, MBeanException {
         return getProxy().getAttributes(name, queryExpr, attributes);
     }
 

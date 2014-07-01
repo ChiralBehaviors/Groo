@@ -85,7 +85,7 @@ public interface NodeMBean {
                                                                          String[] attributes)
                                                                                              throws InstanceNotFoundException,
                                                                                              ReflectionException,
-                                                                                             IOException;
+                                                                                             IOException, MBeanException;
 
     public AttributeList getAttributes(ObjectName name, String[] attributes)
                                                                             throws InstanceNotFoundException,
