@@ -144,8 +144,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return; // don't even log this ;)
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when adding notification listener on %s for %s",
-                                        this, objectName, listener), e);
+                log.warn(String.format("%s experienced exception when adding notification listener on %s for %s",
+                                       this, objectName, listener), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -209,8 +209,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return; // don't even log this ;)
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when adding notification listener on %s for %s",
-                                        this, objectName, listener), e);
+                log.warn(String.format("%s experienced exception when adding notification listener on %s for %s",
+                                       this, objectName, listener), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -266,8 +266,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when adding notification listener %s, %s",
-                                        this, pattern, queryExpr), e);
+                log.warn(String.format("%s experienced exception when adding notification listener %s, %s",
+                                       this, pattern, queryExpr), e);
             }
         }
         if (!success) {
@@ -327,8 +327,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when adding notification listener %s, %s",
-                                        this, pattern, queryExpr), e);
+                log.warn(String.format("%s experienced exception when adding notification listener %s, %s",
+                                       this, pattern, queryExpr), e);
             }
         }
         if (!success) {
@@ -418,8 +418,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return Collections.emptyMap();
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when collecting attributes %s, %s",
-                                        this, pattern, queryExpr), e);
+                log.warn(String.format("%s experienced exception when collecting attributes %s, %s",
+                                       this, pattern, queryExpr), e);
             }
         }
         if (attributes.size() == 0) {
@@ -489,8 +489,10 @@ public class Node implements NodeMBean, MBeanRegistration {
                 if (e.getCause() instanceof AttributeNotFoundException) {
                     attributeNotFound |= true;
                 } else {
-                    log.debug(String.format("%s experienced exception when retriving attribute %s, %s",
-                                            this, objectName, attribute), e);
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        log.warn(String.format("%s experienced exception when retriving attribute %s, %s",
+                                               this, objectName, attribute), e);
+                    }
                 }
             }
         }
@@ -558,9 +560,9 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return Collections.emptyMap();
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when retriving attributes %s, %s, %s, %s",
-                                        this, pattern, queryExpr,
-                                        Arrays.asList(attributes)), e);
+                log.warn(String.format("%s experienced exception when retriving attributes %s, %s, %s, %s",
+                                       this, pattern, queryExpr,
+                                       Arrays.asList(attributes)), e);
             }
         }
         if (attrs.size() == 0) {
@@ -621,9 +623,11 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return new AttributeList();
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when retriving attributes %s, %s",
-                                        this, objectName,
-                                        Arrays.asList(attributes)), e);
+                if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                    log.warn(String.format("%s experienced exception when retriving attributes %s, %s",
+                                           this, objectName,
+                                           Arrays.asList(attributes)), e);
+                }
             }
         }
         throw new InstanceNotFoundException(
@@ -680,8 +684,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return 0;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when retriving mbean count %s",
-                                        this), e);
+                log.warn(String.format("%s experienced exception when retriving mbean count %s",
+                                       this), e);
             }
         }
         return count;
@@ -724,8 +728,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return 0;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when retriving mbean count %s, %s, %s",
-                                        this, filter, queryExp), e);
+                log.warn(String.format("%s experienced exception when retriving mbean count %s, %s, %s",
+                                       this, filter, queryExp), e);
             }
         }
         return count;
@@ -779,8 +783,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return null;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when retriving mbean info %s, %s",
-                                        this, objectName), e);
+                log.warn(String.format("%s experienced exception when retriving mbean info %s, %s",
+                                       this, objectName), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -837,8 +841,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return null;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when retriving object instance %s, %s",
-                                        this, objectName), e);
+                log.warn(String.format("%s experienced exception when retriving object instance %s, %s",
+                                       this, objectName), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -886,8 +890,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return instances;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when retreiving object instances %s, %s, %s",
-                                        this, filter, queryExpr), e);
+                log.warn(String.format("%s experienced exception when retreiving object instances %s, %s, %s",
+                                       this, filter, queryExpr), e);
             }
         }
         if (instances.size() == 0) {
@@ -967,15 +971,18 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return results;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when invoking %s, %s, %s, %s, %s",
-                                        this,
-                                        filter,
-                                        queryExpr,
-                                        operationName,
-                                        params != null ? Arrays.asList(params)
-                                                      : null,
-                                        signature != null ? Arrays.asList(signature)
-                                                         : null), e.getCause());
+                if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                    log.warn(String.format("%s experienced exception when invoking %s, %s, %s, %s, %s",
+                                           this,
+                                           filter,
+                                           queryExpr,
+                                           operationName,
+                                           params != null ? Arrays.asList(params)
+                                                         : null,
+                                           signature != null ? Arrays.asList(signature)
+                                                            : null),
+                             e.getCause());
+                }
             }
         }
         if (results.size() == 0) {
@@ -1042,14 +1049,16 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return null;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when invoking %s, %s, %s, %s",
-                                        this,
-                                        objectName,
-                                        operationName,
-                                        params != null ? Arrays.asList(params)
-                                                      : null,
-                                        signature != null ? Arrays.asList(signature)
-                                                         : null), e);
+                if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                    log.warn(String.format("%s experienced exception when invoking %s, %s, %s, %s",
+                                           this,
+                                           objectName,
+                                           operationName,
+                                           params != null ? Arrays.asList(params)
+                                                         : null,
+                                           signature != null ? Arrays.asList(signature)
+                                                            : null), e);
+                }
             }
         }
         throw new InstanceNotFoundException(
@@ -1106,8 +1115,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return false;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when determining instance of %s, %s",
-                                        this, objectName, className), e);
+                log.warn(String.format("%s experienced exception when determining instance of %s, %s",
+                                       this, objectName, className), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -1158,8 +1167,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return false;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when determining is registered %s",
-                                        this, objectName), e);
+                log.warn(String.format("%s experienced exception when determining is registered %s",
+                                       this, objectName), e);
             }
         }
         return false;
@@ -1242,8 +1251,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return instances;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when querying mbeans %s, %s",
-                                        this, filter, query), e);
+                log.warn(String.format("%s experienced exception when querying mbeans %s, %s",
+                                       this, filter, query), e);
             }
         }
         return instances;
@@ -1292,8 +1301,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return names;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when querying names %s, %s",
-                                        this, filter, query), e);
+                log.warn(String.format("%s experienced exception when querying names %s, %s",
+                                       this, filter, query), e);
             }
         }
         return names;
@@ -1359,8 +1368,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return; // don't even log this ;)
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when removing notification listener on %s for %s",
-                                        this, objectName, listener), e);
+                log.warn(String.format("%s experienced exception when removing notification listener on %s for %s",
+                                       this, objectName, listener), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -1428,8 +1437,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return; // don't even log this ;)
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when removing notification listener on %s for %s, %s",
-                                        this, objectName, listener, filter), e);
+                log.warn(String.format("%s experienced exception when removing notification listener on %s for %s, %s",
+                                       this, objectName, listener, filter), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -1490,8 +1499,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return; // don't even log this ;)
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when removing notification listener on %s for %s",
-                                        this, objectName, listener), e);
+                log.warn(String.format("%s experienced exception when removing notification listener on %s for %s",
+                                       this, objectName, listener), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -1559,9 +1568,9 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return; // don't even log this ;)
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when removing notification listener on %s for %s, %s, %s",
-                                        this, objectName, listener, filter,
-                                        handback), e);
+                log.warn(String.format("%s experienced exception when removing notification listener on %s for %s, %s, %s",
+                                       this, objectName, listener, filter,
+                                       handback), e);
             }
         }
         throw new InstanceNotFoundException(
@@ -1615,8 +1624,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when adding notification listener %s, %s",
-                                        this, pattern, queryExpr), e);
+                log.warn(String.format("%s experienced exception when adding notification listener %s, %s",
+                                       this, pattern, queryExpr), e);
             }
         }
         if (!success) {
@@ -1677,9 +1686,9 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when removing notification listener %s, %s, %s, %s, %s",
-                                        this, pattern, queryExpr, listener,
-                                        filter, handback), e);
+                log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s, %s, %s",
+                                       this, pattern, queryExpr, listener,
+                                       filter, handback), e);
             }
         }
         if (!success) {
@@ -1735,8 +1744,8 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when removing notification listener %s, %s, %s",
-                                        this, pattern, queryExpr, listener), e);
+                log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s",
+                                       this, pattern, queryExpr, listener), e);
             }
         }
         if (!success) {
@@ -1796,9 +1805,9 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when removing notification listener %s, %s, %s, %s, %s",
-                                        this, pattern, queryExpr, listener,
-                                        filter, handback), e);
+                log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s, %s, %s",
+                                       this, pattern, queryExpr, listener,
+                                       filter, handback), e);
             }
         }
         if (!success) {
@@ -1871,8 +1880,10 @@ public class Node implements NodeMBean, MBeanRegistration {
                 if (e.getCause() instanceof AttributeNotFoundException) {
                     attributeNotFound |= true;
                 } else {
-                    log.debug(String.format("%s experienced exception when setting attribute %s, %s",
-                                            this, objectName, attribute), e);
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        log.warn(String.format("%s experienced exception when setting attribute %s, %s",
+                                               this, objectName, attribute), e);
+                    }
                 }
             }
         }
@@ -1946,8 +1957,8 @@ public class Node implements NodeMBean, MBeanRegistration {
                     }
                     throw (InvalidAttributeValueException) e.getCause();
                 }
-                log.debug(String.format("%s experienced exception when setting attribute %s, %s, %s, %s",
-                                        this, pattern, queryExpr, attribute), e);
+                log.warn(String.format("%s experienced exception when setting attribute %s, %s, %s, %s",
+                                       this, pattern, queryExpr, attribute), e);
             }
         }
         if (!success) {
@@ -2010,8 +2021,10 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return new AttributeList();
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when setting attributes %s, %s",
-                                        this, objectName, attributes), e);
+                if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                    log.warn(String.format("%s experienced exception when setting attributes %s, %s",
+                                           this, objectName, attributes), e);
+                }
             }
         }
         throw new InstanceNotFoundException(
@@ -2071,9 +2084,9 @@ public class Node implements NodeMBean, MBeanRegistration {
             } catch (InterruptedException e) {
                 return Collections.emptyMap();
             } catch (ExecutionException e) {
-                log.debug(String.format("%s experienced exception when setting attributes %s, %s, %s, %s",
-                                        this, pattern, queryExpr,
-                                        Arrays.asList(attributes)), e);
+                log.warn(String.format("%s experienced exception when setting attributes %s, %s, %s, %s",
+                                       this, pattern, queryExpr,
+                                       Arrays.asList(attributes)), e);
             }
         }
         if (attrs.size() == 0) {
