@@ -133,19 +133,20 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return; // don't even log this ;)
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when adding notification listener on %s for %s",
+                                           this, objectName, listener), e);
                 }
-            } catch (InterruptedException e) {
-                return; // don't even log this ;)
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when adding notification listener on %s for %s",
-                                       this, objectName, listener), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -198,19 +199,20 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return; // don't even log this ;)
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when adding notification listener on %s for %s",
+                                           this, objectName, listener), e);
                 }
-            } catch (InterruptedException e) {
-                return; // don't even log this ;)
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when adding notification listener on %s for %s",
-                                       this, objectName, listener), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -261,8 +263,7 @@ public class Node implements NodeMBean, MBeanRegistration {
         boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
-                completionService.take().get();
-                success = true;
+                success |= completionService.take().get();
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
@@ -322,8 +323,7 @@ public class Node implements NodeMBean, MBeanRegistration {
         boolean success = false;
         for (int i = 0; i < futures.size(); i++) {
             try {
-                completionService.take().get();
-                success = true;
+                success |= completionService.take().get();
             } catch (InterruptedException e) {
                 return;
             } catch (ExecutionException e) {
@@ -475,37 +475,30 @@ public class Node implements NodeMBean, MBeanRegistration {
         List<Future<Object>> futures = forAll(completionService, generator,
                                               objectName);
 
-        boolean attributeNotFound = false;
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                Object attributeValue = completionService.take().get();
-                for (Future<Object> future : futures) {
-                    future.cancel(true);
-                }
-                return attributeValue;
-            } catch (InterruptedException e) {
-                return Collections.emptyMap();
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof AttributeNotFoundException) {
-                    attributeNotFound |= true;
-                } else {
-                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    Object attributeValue = completionService.take().get();
+                    return attributeValue;
+                } catch (InterruptedException e) {
+                    return Collections.emptyMap();
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof AttributeNotFoundException) {
+                        throw (AttributeNotFoundException) e.getCause();
+                    } else if (!(e.getCause() instanceof InstanceNotFoundException)) {
                         log.warn(String.format("%s experienced exception when retriving attribute %s, %s",
                                                this, objectName, attribute), e);
                     }
                 }
             }
+        } finally {
+            for (Future<Object> future : futures) {
+                future.cancel(true);
+            }
         }
-        if (attributeNotFound) {
-            throw new AttributeNotFoundException(
-                                                 String.format("Attribute not found: %s for %s",
-                                                               attribute,
-                                                               objectName));
-        } else {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s",
-                                                              objectName));
-        }
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s",
+                                                          objectName));
     }
 
     /* (non-Javadoc)
@@ -613,21 +606,24 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<AttributeList>> futures = forAll(completionService,
                                                      generator, objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                AttributeList attrs = completionService.take().get();
-                for (Future<AttributeList> future : futures) {
-                    future.cancel(true);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    AttributeList attrs = completionService.take().get();
+                    return attrs;
+                } catch (InterruptedException e) {
+                    return new AttributeList();
+                } catch (ExecutionException e) {
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        log.warn(String.format("%s experienced exception when retriving attributes %s, %s",
+                                               this, objectName,
+                                               Arrays.asList(attributes)), e);
+                    }
                 }
-                return attrs;
-            } catch (InterruptedException e) {
-                return new AttributeList();
-            } catch (ExecutionException e) {
-                if (!(e.getCause() instanceof InstanceNotFoundException)) {
-                    log.warn(String.format("%s experienced exception when retriving attributes %s, %s",
-                                           this, objectName,
-                                           Arrays.asList(attributes)), e);
-                }
+            }
+        } finally {
+            for (Future<AttributeList> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -773,18 +769,21 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<MBeanInfo>> futures = forAll(completionService, generator,
                                                  objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                MBeanInfo info = completionService.take().get();
-                for (Future<MBeanInfo> future : futures) {
-                    future.cancel(true);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    MBeanInfo info = completionService.take().get();
+                    return info;
+                } catch (InterruptedException e) {
+                    return null;
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when retriving mbean info %s, %s",
+                                           this, objectName), e);
                 }
-                return info;
-            } catch (InterruptedException e) {
-                return null;
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when retriving mbean info %s, %s",
-                                       this, objectName), e);
+            }
+        } finally {
+            for (Future<MBeanInfo> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -831,18 +830,21 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<ObjectInstance>> futures = forAll(completionService,
                                                       generator, objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                ObjectInstance instance = completionService.take().get();
-                for (Future<ObjectInstance> future : futures) {
-                    future.cancel(true);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    ObjectInstance instance = completionService.take().get();
+                    return instance;
+                } catch (InterruptedException e) {
+                    return null;
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when retriving object instance %s, %s",
+                                           this, objectName), e);
                 }
-                return instance;
-            } catch (InterruptedException e) {
-                return null;
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when retriving object instance %s, %s",
-                                       this, objectName), e);
+            }
+        } finally {
+            for (Future<ObjectInstance> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -1039,26 +1041,29 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Object>> futures = forAll(completionService, generator,
                                               objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                Object result = completionService.take().get();
-                for (Future<Object> future : futures) {
-                    future.cancel(true);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    Object result = completionService.take().get();
+                    return result;
+                } catch (InterruptedException e) {
+                    return null;
+                } catch (ExecutionException e) {
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        log.warn(String.format("%s experienced exception when invoking %s, %s, %s, %s",
+                                               this,
+                                               objectName,
+                                               operationName,
+                                               params != null ? Arrays.asList(params)
+                                                             : null,
+                                               signature != null ? Arrays.asList(signature)
+                                                                : null), e);
+                    }
                 }
-                return result;
-            } catch (InterruptedException e) {
-                return null;
-            } catch (ExecutionException e) {
-                if (!(e.getCause() instanceof InstanceNotFoundException)) {
-                    log.warn(String.format("%s experienced exception when invoking %s, %s, %s, %s",
-                                           this,
-                                           objectName,
-                                           operationName,
-                                           params != null ? Arrays.asList(params)
-                                                         : null,
-                                           signature != null ? Arrays.asList(signature)
-                                                            : null), e);
-                }
+            }
+        } finally {
+            for (Future<Object> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -1105,23 +1110,24 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                Boolean result = completionService.take().get();
-                for (Future<Boolean> future : futures) {
-                    future.cancel(true);
+        boolean isInstOf = false;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    isInstOf |= completionService.take().get();
+                } catch (InterruptedException e) {
+                    return false;
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when determining instance of %s, %s",
+                                           this, objectName, className), e);
                 }
-                return result;
-            } catch (InterruptedException e) {
-                return false;
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when determining instance of %s, %s",
-                                       this, objectName, className), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
-        throw new InstanceNotFoundException(
-                                            String.format("Instance not found: %s",
-                                                          objectName));
+        return isInstOf;
     }
 
     /**
@@ -1157,21 +1163,24 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                Boolean result = completionService.take().get();
-                for (Future<Boolean> future : futures) {
-                    future.cancel(true);
+        boolean registered = false;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    registered |= completionService.take().get();
+                } catch (InterruptedException e) {
+                    return false;
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when determining is registered %s",
+                                           this, objectName), e);
                 }
-                return result;
-            } catch (InterruptedException e) {
-                return false;
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when determining is registered %s",
-                                       this, objectName), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
-        return false;
+        return registered;
     }
 
     /* (non-Javadoc)
@@ -1357,19 +1366,20 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return; // don't even log this ;)
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when removing notification listener on %s for %s",
+                                           this, objectName, listener), e);
                 }
-            } catch (InterruptedException e) {
-                return; // don't even log this ;)
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when removing notification listener on %s for %s",
-                                       this, objectName, listener), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -1426,19 +1436,21 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return; // don't even log this ;)
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when removing notification listener on %s for %s, %s",
+                                           this, objectName, listener, filter),
+                             e);
                 }
-            } catch (InterruptedException e) {
-                return; // don't even log this ;)
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when removing notification listener on %s for %s, %s",
-                                       this, objectName, listener, filter), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -1488,19 +1500,20 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return; // don't even log this ;)
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when removing notification listener on %s for %s",
+                                           this, objectName, listener), e);
                 }
-            } catch (InterruptedException e) {
-                return; // don't even log this ;)
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when removing notification listener on %s for %s",
-                                       this, objectName, listener), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -1557,20 +1570,21 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                objectName);
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                if (completionService.take().get()) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    return;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return; // don't even log this ;)
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when removing notification listener on %s for %s, %s, %s",
+                                           this, objectName, listener, filter,
+                                           handback), e);
                 }
-            } catch (InterruptedException e) {
-                return; // don't even log this ;)
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when removing notification listener on %s for %s, %s, %s",
-                                       this, objectName, listener, filter,
-                                       handback), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
@@ -1678,23 +1692,22 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
-        boolean success = false;
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                completionService.take().get();
-                success = true;
-            } catch (InterruptedException e) {
-                return;
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s, %s, %s",
-                                       this, pattern, queryExpr, listener,
-                                       filter, handback), e);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return;
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s, %s, %s",
+                                           this, pattern, queryExpr, listener,
+                                           filter, handback), e);
+                }
             }
-        }
-        if (!success) {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s, %s",
-                                                              name, queryExpr));
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
+            }
         }
     }
 
@@ -1736,23 +1749,28 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
-        boolean success = false;
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                completionService.take().get();
-                success = true;
-            } catch (InterruptedException e) {
-                return;
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s",
-                                       this, pattern, queryExpr, listener), e);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return;
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s",
+                                           this, pattern, queryExpr, listener),
+                             e);
+                }
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
-        if (!success) {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s, %s",
-                                                              name, queryExpr));
-        }
+
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s, %s",
+                                                          name, queryExpr));
+
     }
 
     /* (non-Javadoc)
@@ -1797,24 +1815,26 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
-        boolean success = false;
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                completionService.take().get();
-                success = true;
-            } catch (InterruptedException e) {
-                return;
-            } catch (ExecutionException e) {
-                log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s, %s, %s",
-                                       this, pattern, queryExpr, listener,
-                                       filter, handback), e);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                } catch (InterruptedException e) {
+                    return;
+                } catch (ExecutionException e) {
+                    log.warn(String.format("%s experienced exception when removing notification listener %s, %s, %s, %s, %s",
+                                           this, pattern, queryExpr, listener,
+                                           filter, handback), e);
+                }
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
-        if (!success) {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s, %s",
-                                                              name, queryExpr));
-        }
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s, %s",
+                                                          name, queryExpr));
     }
 
     /**
@@ -1866,37 +1886,30 @@ public class Node implements NodeMBean, MBeanRegistration {
         List<Future<Void>> futures = forAll(completionService, generator,
                                             objectName);
 
-        boolean attributeNotFound = false;
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                completionService.take().get();
-                for (Future<Void> future : futures) {
-                    future.cancel(true);
-                }
-                return;
-            } catch (InterruptedException e) {
-                return;
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof AttributeNotFoundException) {
-                    attributeNotFound |= true;
-                } else {
-                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    completionService.take().get();
+                    return;
+                } catch (InterruptedException e) {
+                    return;
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof AttributeNotFoundException) {
+                    } else if (!(e.getCause() instanceof InstanceNotFoundException)) {
                         log.warn(String.format("%s experienced exception when setting attribute %s, %s",
                                                this, objectName, attribute), e);
+
                     }
                 }
             }
+        } finally {
+            for (Future<Void> future : futures) {
+                future.cancel(true);
+            }
         }
-        if (attributeNotFound) {
-            throw new AttributeNotFoundException(
-                                                 String.format("Attribute not found: %s for %s",
-                                                               attribute,
-                                                               objectName));
-        } else {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s",
-                                                              objectName));
-        }
+        throw new InstanceNotFoundException(
+                                            String.format("Instance not found: %s",
+                                                          objectName));
     }
 
     /* (non-Javadoc)
@@ -1919,8 +1932,16 @@ public class Node implements NodeMBean, MBeanRegistration {
                 return new Callable<Boolean>() {
                     @Override
                     public Boolean call() throws Exception {
-                        mbs.setAttribute(objectName, attribute);
-                        return true;
+                        try {
+                            mbs.setAttribute(objectName, attribute);
+                            return true;
+                        } catch (Exception e) {
+                            if (e instanceof InstanceNotFoundException) {
+                                return false;
+                            } else {
+                                throw e;
+                            }
+                        }
                     }
                 };
             }
@@ -1938,30 +1959,30 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<Boolean>> futures = forAll(completionService, generator,
                                                pattern, queryExpr);
-        boolean success = false;
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                completionService.take().get();
-                success = true;
-            } catch (InterruptedException e) {
-                return;
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof AttributeNotFoundException) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
+        boolean found = false;
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    found |= completionService.take().get();
+                } catch (InterruptedException e) {
+                    return;
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof AttributeNotFoundException) {
+                        throw (AttributeNotFoundException) e.getCause();
+                    } else if (e.getCause() instanceof InvalidAttributeValueException) {
+                        throw (InvalidAttributeValueException) e.getCause();
                     }
-                    throw (AttributeNotFoundException) e.getCause();
-                } else if (e.getCause() instanceof InvalidAttributeValueException) {
-                    for (Future<Boolean> future : futures) {
-                        future.cancel(true);
-                    }
-                    throw (InvalidAttributeValueException) e.getCause();
+                    log.warn(String.format("%s experienced exception when setting attribute %s, %s, %s, %s",
+                                           this, pattern, queryExpr, attribute),
+                             e);
                 }
-                log.warn(String.format("%s experienced exception when setting attribute %s, %s, %s, %s",
-                                       this, pattern, queryExpr, attribute), e);
+            }
+        } finally {
+            for (Future<Boolean> future : futures) {
+                future.cancel(true);
             }
         }
-        if (!success) {
+        if (!found) {
             throw new InstanceNotFoundException(
                                                 String.format("Instance not found: %s, %s",
                                                               pattern,
@@ -2010,21 +2031,23 @@ public class Node implements NodeMBean, MBeanRegistration {
         };
         List<Future<AttributeList>> futures = forAll(completionService,
                                                      generator, objectName);
-
-        for (int i = 0; i < futures.size(); i++) {
-            try {
-                AttributeList attrs = completionService.take().get();
-                for (Future<AttributeList> future : futures) {
-                    future.cancel(true);
+        try {
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    AttributeList attrs = completionService.take().get();
+                    return attrs;
+                } catch (InterruptedException e) {
+                    return new AttributeList();
+                } catch (ExecutionException e) {
+                    if (!(e.getCause() instanceof InstanceNotFoundException)) {
+                        log.warn(String.format("%s experienced exception when setting attributes %s, %s",
+                                               this, objectName, attributes), e);
+                    }
                 }
-                return attrs;
-            } catch (InterruptedException e) {
-                return new AttributeList();
-            } catch (ExecutionException e) {
-                if (!(e.getCause() instanceof InstanceNotFoundException)) {
-                    log.warn(String.format("%s experienced exception when setting attributes %s, %s",
-                                           this, objectName, attributes), e);
-                }
+            }
+        } finally {
+            for (Future<AttributeList> future : futures) {
+                future.cancel(true);
             }
         }
         throw new InstanceNotFoundException(
