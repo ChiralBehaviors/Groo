@@ -19,6 +19,7 @@ package com.chiralBehaviors.groo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.management.Attribute;
@@ -92,12 +93,13 @@ public class TestLeaf {
 
     @Test
     public void testMultiGetAttribute() throws Exception {
-        Map<ObjectName, Object> result = leaf.getAttribute(multiTest1, null,
-                                                           "Attribute1");
+        Map<ObjectName, OperationResult<Object>> result = leaf.getAttribute(multiTest1,
+                                                                            null,
+                                                                            "Attribute1");
         assertNotNull(result);
         assertEquals(2, result.size());
-        for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
-            assertEquals(-1, entry.getValue());
+        for (Map.Entry<ObjectName, OperationResult<Object>> entry : result.entrySet()) {
+            assertEquals(-1, entry.getValue().getResult());
         }
         assertNotNull(result.get(test1a));
         assertNotNull(result.get(test1b));
@@ -107,18 +109,19 @@ public class TestLeaf {
     public void testMultiGetAttributes() throws Exception {
         AttributeList attrs = new AttributeList();
         attrs.add(new Attribute("Attribute1", null));
-        Map<ObjectName, AttributeList> result = leaf.getAttributes(multiTest1,
-                                                                   null,
-                                                                   new String[] {
-                                                                           "Attribute1",
-                                                                           "Attribute2" });
+        Map<ObjectName, OperationResult<AttributeList>> result = leaf.getAttributes(multiTest1,
+                                                                                    null,
+                                                                                    new String[] {
+                                                                                            "Attribute1",
+                                                                                            "Attribute2" });
         assertNotNull(result);
         assertEquals(2, result.size());
-        for (AttributeList list : result.values()) {
-            assertEquals("Attribute1", list.asList().get(0).getName());
-            assertEquals("Attribute2", list.asList().get(1).getName());
-            assertEquals(-1, list.asList().get(0).getValue());
-            assertEquals(-2, list.asList().get(1).getValue());
+        for (OperationResult<AttributeList> list : result.values()) {
+            List<Attribute> asList = list.getResult().asList();
+            assertEquals("Attribute1", asList.get(0).getName());
+            assertEquals("Attribute2", asList.get(1).getName());
+            assertEquals(-1, asList.get(0).getValue());
+            assertEquals(-2, asList.get(1).getValue());
         }
         assertNotNull(result.get(test1a));
         assertNotNull(result.get(test1b));
@@ -126,12 +129,15 @@ public class TestLeaf {
 
     @Test
     public void testMultiInvoke() throws Exception {
-        Map<ObjectName, Object> result = leaf.invoke(multiTest1, null,
-                                                     "operation1", null, null);
+        Map<ObjectName, OperationResult<Object>> result = leaf.invoke(multiTest1,
+                                                                      null,
+                                                                      "operation1",
+                                                                      null,
+                                                                      null);
         assertNotNull(result);
         assertEquals(2, result.size());
-        for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
-            assertEquals("-1", entry.getValue());
+        for (Map.Entry<ObjectName, OperationResult<Object>> entry : result.entrySet()) {
+            assertEquals("-1", entry.getValue().getResult());
         }
         assertNotNull(result.get(test1a));
         assertNotNull(result.get(test1b));
@@ -141,8 +147,8 @@ public class TestLeaf {
                              new String[] { String.class.getCanonicalName() });
         assertNotNull(result);
         assertEquals(2, result.size());
-        for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
-            assertEquals("testy", entry.getValue());
+        for (Map.Entry<ObjectName, OperationResult<Object>> entry : result.entrySet()) {
+            assertEquals("testy", entry.getValue().getResult());
         }
         assertNotNull(result.get(test2a));
         assertNotNull(result.get(test2b));
@@ -164,14 +170,16 @@ public class TestLeaf {
         AttributeList attrs = new AttributeList();
         attrs.add(new Attribute("Attribute1", 1));
         attrs.add(new Attribute("Attribute2", 2));
-        Map<ObjectName, AttributeList> result = leaf.setAttributes(multiTest1,
-                                                                   null, attrs);
+        Map<ObjectName, OperationResult<AttributeList>> result = leaf.setAttributes(multiTest1,
+                                                                                    null,
+                                                                                    attrs);
         assertEquals(2, result.size());
-        for (AttributeList list : result.values()) {
-            assertEquals("Attribute1", list.asList().get(0).getName());
-            assertEquals("Attribute2", list.asList().get(1).getName());
-            assertEquals(1, list.asList().get(0).getValue());
-            assertEquals(2, list.asList().get(1).getValue());
+        for (OperationResult<AttributeList> list : result.values()) {
+            List<Attribute> asList = list.getResult().asList();
+            assertEquals("Attribute1", asList.get(0).getName());
+            assertEquals("Attribute2", asList.get(1).getName());
+            assertEquals(1, asList.get(0).getValue());
+            assertEquals(2, asList.get(1).getValue());
         }
         assertNotNull(result.get(test1a));
         assertNotNull(result.get(test1b));

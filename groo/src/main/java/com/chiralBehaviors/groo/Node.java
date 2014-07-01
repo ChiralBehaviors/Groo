@@ -1,16 +1,16 @@
-/** 
+/**
  * (C) Copyright 2014 Chiral Behaviors, All Rights Reserved
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- *     
+ *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, 
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- * See the License for the specific language governing permissions and 
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author hhildebrand
- * 
+ *
  */
 public class Node implements NodeMBean, MBeanRegistration {
     private static final Logger      log      = LoggerFactory.getLogger(Node.class);
@@ -367,49 +367,50 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see com.hellblazer.groo.NodeMXBean#getAttribute(javax.management.ObjectName, javax.management.QueryExp, java.lang.String)
      */
     @Override
-    public <T> Map<ObjectName, T> getAttribute(final ObjectName pattern,
-                                               final QueryExp queryExpr,
-                                               final String attribute)
-                                                                      throws MBeanException,
-                                                                      AttributeNotFoundException,
-                                                                      InstanceNotFoundException,
-                                                                      ReflectionException,
-                                                                      IOException {
-        Map<ObjectName, T> attributes = new HashMap<>();
-        ExecutorCompletionService<Map<ObjectName, T>> completionService = new ExecutorCompletionService<>(
-                                                                                                          executor);
-        TaskGenerator<Map<ObjectName, T>> generator = new TaskGenerator<Map<ObjectName, T>>() {
+    public <T> Map<ObjectName, OperationResult<T>> getAttribute(final ObjectName pattern,
+                                                                final QueryExp queryExpr,
+                                                                final String attribute)
+                                                                                       throws MBeanException,
+                                                                                       AttributeNotFoundException,
+                                                                                       InstanceNotFoundException,
+                                                                                       ReflectionException,
+                                                                                       IOException {
+        Map<ObjectName, OperationResult<T>> attributes = new HashMap<>();
+        ExecutorCompletionService<Map<ObjectName, OperationResult<T>>> completionService = new ExecutorCompletionService<>(
+                                                                                                                           executor);
+        TaskGenerator<Map<ObjectName, OperationResult<T>>> generator = new TaskGenerator<Map<ObjectName, OperationResult<T>>>() {
             @Override
-            public Callable<Map<ObjectName, T>> localTask(final ObjectName objectName) {
-                return new Callable<Map<ObjectName, T>>() {
+            public Callable<Map<ObjectName, OperationResult<T>>> localTask(final ObjectName objectName) {
+                return new Callable<Map<ObjectName, OperationResult<T>>>() {
                     @SuppressWarnings("unchecked")
                     @Override
-                    public Map<ObjectName, T> call() throws Exception {
-                        Map<ObjectName, T> attributes = new HashMap<>();
+                    public Map<ObjectName, OperationResult<T>> call()
+                                                                     throws Exception {
+                        Map<ObjectName, OperationResult<T>> attributes = new HashMap<>();
                         attributes.put(objectName,
-                                       (T) mbs.getAttribute(objectName,
-                                                            attribute));
+                                       new OperationResult<T>(
+                                                              (T) mbs.getAttribute(objectName,
+                                                                                   attribute)));
                         return attributes;
                     }
                 };
             }
 
             @Override
-            public Callable<Map<ObjectName, T>> remoteTask(final NodeMBean child) {
-                return new Callable<Map<ObjectName, T>>() {
-                    @SuppressWarnings("unchecked")
+            public Callable<Map<ObjectName, OperationResult<T>>> remoteTask(final NodeMBean child) {
+                return new Callable<Map<ObjectName, OperationResult<T>>>() {
                     @Override
-                    public Map<ObjectName, T> call() throws Exception {
-                        return (Map<ObjectName, T>) child.getAttribute(pattern,
-                                                                       queryExpr,
-                                                                       attribute);
+                    public Map<ObjectName, OperationResult<T>> call()
+                                                                     throws Exception {
+                        return child.getAttribute(pattern, queryExpr, attribute);
                     }
                 };
             }
         };
-        List<Future<Map<ObjectName, T>>> futures = forAll(completionService,
-                                                          generator, pattern,
-                                                          queryExpr);
+        List<Future<Map<ObjectName, OperationResult<T>>>> futures = forAll(completionService,
+                                                                           generator,
+                                                                           pattern,
+                                                                           queryExpr);
 
         for (int i = 0; i < futures.size(); i++) {
             try {
@@ -509,46 +510,48 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see com.hellblazer.groo.NodeMXBean#getAttributes(javax.management.ObjectName, javax.management.QueryExp, java.lang.String[])
      */
     @Override
-    public Map<ObjectName, AttributeList> getAttributes(final ObjectName pattern,
-                                                        final QueryExp queryExpr,
-                                                        final String[] attributes)
-                                                                                  throws InstanceNotFoundException,
-                                                                                  ReflectionException,
-                                                                                  IOException {
-        Map<ObjectName, AttributeList> attrs = new HashMap<>();
-        ExecutorCompletionService<Map<ObjectName, AttributeList>> completionService = new ExecutorCompletionService<>(
-                                                                                                                      executor);
-        TaskGenerator<Map<ObjectName, AttributeList>> generator = new TaskGenerator<Map<ObjectName, AttributeList>>() {
+    public Map<ObjectName, OperationResult<AttributeList>> getAttributes(final ObjectName pattern,
+                                                                         final QueryExp queryExpr,
+                                                                         final String[] attributes)
+                                                                                                   throws InstanceNotFoundException,
+                                                                                                   ReflectionException,
+                                                                                                   IOException {
+        Map<ObjectName, OperationResult<AttributeList>> attrs = new HashMap<>();
+        ExecutorCompletionService<Map<ObjectName, OperationResult<AttributeList>>> completionService = new ExecutorCompletionService<>(
+                                                                                                                                       executor);
+        TaskGenerator<Map<ObjectName, OperationResult<AttributeList>>> generator = new TaskGenerator<Map<ObjectName, OperationResult<AttributeList>>>() {
             @Override
-            public Callable<Map<ObjectName, AttributeList>> localTask(final ObjectName objectName) {
-                return new Callable<Map<ObjectName, AttributeList>>() {
+            public Callable<Map<ObjectName, OperationResult<AttributeList>>> localTask(final ObjectName objectName) {
+                return new Callable<Map<ObjectName, OperationResult<AttributeList>>>() {
                     @Override
-                    public Map<ObjectName, AttributeList> call()
-                                                                throws Exception {
-                        Map<ObjectName, AttributeList> attrs = new HashMap<>();
+                    public Map<ObjectName, OperationResult<AttributeList>> call()
+                                                                                 throws Exception {
+                        Map<ObjectName, OperationResult<AttributeList>> attrs = new HashMap<>();
                         attrs.put(objectName,
-                                  mbs.getAttributes(objectName, attributes));
+                                  new OperationResult<AttributeList>(
+                                                                     mbs.getAttributes(objectName,
+                                                                                       attributes)));
                         return attrs;
                     }
                 };
             }
 
             @Override
-            public Callable<Map<ObjectName, AttributeList>> remoteTask(final NodeMBean child) {
-                return new Callable<Map<ObjectName, AttributeList>>() {
+            public Callable<Map<ObjectName, OperationResult<AttributeList>>> remoteTask(final NodeMBean child) {
+                return new Callable<Map<ObjectName, OperationResult<AttributeList>>>() {
                     @Override
-                    public Map<ObjectName, AttributeList> call()
-                                                                throws Exception {
+                    public Map<ObjectName, OperationResult<AttributeList>> call()
+                                                                                 throws Exception {
                         return child.getAttributes(pattern, queryExpr,
                                                    attributes);
                     }
                 };
             }
         };
-        List<Future<Map<ObjectName, AttributeList>>> futures = forAll(completionService,
-                                                                      generator,
-                                                                      pattern,
-                                                                      queryExpr);
+        List<Future<Map<ObjectName, OperationResult<AttributeList>>>> futures = forAll(completionService,
+                                                                                       generator,
+                                                                                       pattern,
+                                                                                       queryExpr);
         for (int i = 0; i < futures.size(); i++) {
             try {
                 attrs.putAll(completionService.take().get());
@@ -910,48 +913,54 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see com.hellblazer.groo.NodeMXBean#invoke(javax.management.ObjectName, javax.management.Query, java.lang.String, java.lang.Object[], java.lang.String[])
      */
     @Override
-    public <T> Map<ObjectName, T> invoke(final ObjectName filter,
-                                         final QueryExp queryExpr,
-                                         final String operationName,
-                                         final Object[] params,
-                                         final String[] signature)
-                                                                  throws InstanceNotFoundException,
-                                                                  MBeanException,
-                                                                  ReflectionException,
-                                                                  IOException {
-        ExecutorCompletionService<Map<ObjectName, T>> completionService = new ExecutorCompletionService<>(
-                                                                                                          executor);
-        TaskGenerator<Map<ObjectName, T>> generator = new TaskGenerator<Map<ObjectName, T>>() {
+    public <T> Map<ObjectName, OperationResult<T>> invoke(final ObjectName filter,
+                                                          final QueryExp queryExpr,
+                                                          final String operationName,
+                                                          final Object[] params,
+                                                          final String[] signature)
+                                                                                   throws InstanceNotFoundException,
+                                                                                   MBeanException,
+                                                                                   ReflectionException,
+                                                                                   IOException {
+        ExecutorCompletionService<Map<ObjectName, OperationResult<T>>> completionService = new ExecutorCompletionService<>(
+                                                                                                                           executor);
+        TaskGenerator<Map<ObjectName, OperationResult<T>>> generator = new TaskGenerator<Map<ObjectName, OperationResult<T>>>() {
             @Override
-            public Callable<Map<ObjectName, T>> localTask(final ObjectName objectName) {
-                return new Callable<Map<ObjectName, T>>() {
+            public Callable<Map<ObjectName, OperationResult<T>>> localTask(final ObjectName objectName) {
+                return new Callable<Map<ObjectName, OperationResult<T>>>() {
                     @SuppressWarnings("unchecked")
                     @Override
-                    public Map<ObjectName, T> call() throws Exception {
-                        Map<ObjectName, T> result = new HashMap<>();
+                    public Map<ObjectName, OperationResult<T>> call()
+                                                                     throws Exception {
+                        Map<ObjectName, OperationResult<T>> result = new HashMap<>();
                         result.put(objectName,
-                                   (T) mbs.invoke(objectName, operationName,
-                                                  params, signature));
+                                   new OperationResult<T>(
+                                                          (T) mbs.invoke(objectName,
+                                                                         operationName,
+                                                                         params,
+                                                                         signature)));
                         return result;
                     }
                 };
             }
 
             @Override
-            public Callable<Map<ObjectName, T>> remoteTask(final NodeMBean child) {
-                return new Callable<Map<ObjectName, T>>() {
+            public Callable<Map<ObjectName, OperationResult<T>>> remoteTask(final NodeMBean child) {
+                return new Callable<Map<ObjectName, OperationResult<T>>>() {
                     @Override
-                    public Map<ObjectName, T> call() throws Exception {
+                    public Map<ObjectName, OperationResult<T>> call()
+                                                                     throws Exception {
                         return child.invoke(filter, queryExpr, operationName,
                                             params, signature);
                     }
                 };
             }
         };
-        List<Future<Map<ObjectName, T>>> futures = forAll(completionService,
-                                                          generator, filter,
-                                                          queryExpr);
-        Map<ObjectName, T> results = new HashMap<>();
+        List<Future<Map<ObjectName, OperationResult<T>>>> futures = forAll(completionService,
+                                                                           generator,
+                                                                           filter,
+                                                                           queryExpr);
+        Map<ObjectName, OperationResult<T>> results = new HashMap<>();
         for (int i = 0; i < futures.size(); i++) {
             try {
                 results.putAll(completionService.take().get());
@@ -2014,46 +2023,48 @@ public class Node implements NodeMBean, MBeanRegistration {
      * @see com.hellblazer.groo.NodeMXBean#setAttributes(javax.management.ObjectName, javax.management.QueryExp, javax.management.AttributeList)
      */
     @Override
-    public Map<ObjectName, AttributeList> setAttributes(final ObjectName pattern,
-                                                        final QueryExp queryExpr,
-                                                        final AttributeList attributes)
-                                                                                       throws InstanceNotFoundException,
-                                                                                       ReflectionException,
-                                                                                       IOException {
-        Map<ObjectName, AttributeList> attrs = new HashMap<>();
-        ExecutorCompletionService<Map<ObjectName, AttributeList>> completionService = new ExecutorCompletionService<>(
-                                                                                                                      executor);
-        TaskGenerator<Map<ObjectName, AttributeList>> generator = new TaskGenerator<Map<ObjectName, AttributeList>>() {
+    public Map<ObjectName, OperationResult<AttributeList>> setAttributes(final ObjectName pattern,
+                                                                         final QueryExp queryExpr,
+                                                                         final AttributeList attributes)
+                                                                                                        throws InstanceNotFoundException,
+                                                                                                        ReflectionException,
+                                                                                                        IOException {
+        Map<ObjectName, OperationResult<AttributeList>> attrs = new HashMap<>();
+        ExecutorCompletionService<Map<ObjectName, OperationResult<AttributeList>>> completionService = new ExecutorCompletionService<>(
+                                                                                                                                       executor);
+        TaskGenerator<Map<ObjectName, OperationResult<AttributeList>>> generator = new TaskGenerator<Map<ObjectName, OperationResult<AttributeList>>>() {
             @Override
-            public Callable<Map<ObjectName, AttributeList>> localTask(final ObjectName objectName) {
-                return new Callable<Map<ObjectName, AttributeList>>() {
+            public Callable<Map<ObjectName, OperationResult<AttributeList>>> localTask(final ObjectName objectName) {
+                return new Callable<Map<ObjectName, OperationResult<AttributeList>>>() {
                     @Override
-                    public Map<ObjectName, AttributeList> call()
-                                                                throws Exception {
-                        Map<ObjectName, AttributeList> attrs = new HashMap<>();
+                    public Map<ObjectName, OperationResult<AttributeList>> call()
+                                                                                 throws Exception {
+                        Map<ObjectName, OperationResult<AttributeList>> attrs = new HashMap<>();
                         attrs.put(objectName,
-                                  mbs.setAttributes(objectName, attributes));
+                                  new OperationResult<AttributeList>(
+                                                                     mbs.setAttributes(objectName,
+                                                                                       attributes)));
                         return attrs;
                     }
                 };
             }
 
             @Override
-            public Callable<Map<ObjectName, AttributeList>> remoteTask(final NodeMBean child) {
-                return new Callable<Map<ObjectName, AttributeList>>() {
+            public Callable<Map<ObjectName, OperationResult<AttributeList>>> remoteTask(final NodeMBean child) {
+                return new Callable<Map<ObjectName, OperationResult<AttributeList>>>() {
                     @Override
-                    public Map<ObjectName, AttributeList> call()
-                                                                throws Exception {
+                    public Map<ObjectName, OperationResult<AttributeList>> call()
+                                                                                 throws Exception {
                         return child.setAttributes(pattern, queryExpr,
                                                    attributes);
                     }
                 };
             }
         };
-        List<Future<Map<ObjectName, AttributeList>>> futures = forAll(completionService,
-                                                                      generator,
-                                                                      pattern,
-                                                                      queryExpr);
+        List<Future<Map<ObjectName, OperationResult<AttributeList>>>> futures = forAll(completionService,
+                                                                                       generator,
+                                                                                       pattern,
+                                                                                       queryExpr);
         for (int i = 0; i < futures.size(); i++) {
             try {
                 attrs.putAll(completionService.take().get());

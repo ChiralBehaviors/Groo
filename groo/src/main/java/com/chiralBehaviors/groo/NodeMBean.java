@@ -1,16 +1,16 @@
-/** 
+/**
  * (C) Copyright 2014 Chiral Behaviors, All Rights Reserved
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- *     
+ *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, 
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- * See the License for the specific language governing permissions and 
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -38,7 +38,7 @@ import javax.management.ReflectionException;
 
 /**
  * @author hhildebrand
- * 
+ *
  */
 public interface NodeMBean {
     public void addNotificationListener(ObjectName name,
@@ -65,14 +65,14 @@ public interface NodeMBean {
                                                         throws InstanceNotFoundException,
                                                         IOException;
 
-    public <T> Map<ObjectName, T> getAttribute(ObjectName name,
-                                               QueryExp queryExpr,
-                                               String attribute)
-                                                                throws MBeanException,
-                                                                AttributeNotFoundException,
-                                                                InstanceNotFoundException,
-                                                                ReflectionException,
-                                                                IOException;
+    public <T> Map<ObjectName, OperationResult<T>> getAttribute(ObjectName name,
+                                                                QueryExp queryExpr,
+                                                                String attribute)
+                                                                                 throws MBeanException,
+                                                                                 AttributeNotFoundException,
+                                                                                 InstanceNotFoundException,
+                                                                                 ReflectionException,
+                                                                                 IOException;
 
     public Object getAttribute(ObjectName name, String attribute)
                                                                  throws MBeanException,
@@ -80,12 +80,12 @@ public interface NodeMBean {
                                                                  InstanceNotFoundException,
                                                                  ReflectionException;
 
-    public Map<ObjectName, AttributeList> getAttributes(ObjectName name,
-                                                        QueryExp queryExpr,
-                                                        String[] attributes)
-                                                                            throws InstanceNotFoundException,
-                                                                            ReflectionException,
-                                                                            IOException;
+    public Map<ObjectName, OperationResult<AttributeList>> getAttributes(ObjectName name,
+                                                                         QueryExp queryExpr,
+                                                                         String[] attributes)
+                                                                                             throws InstanceNotFoundException,
+                                                                                             ReflectionException,
+                                                                                             IOException;
 
     public AttributeList getAttributes(ObjectName name, String[] attributes)
                                                                             throws InstanceNotFoundException,
@@ -203,20 +203,22 @@ public interface NodeMBean {
                                                                                  ReflectionException,
                                                                                  IOException;
 
-    public Map<ObjectName, AttributeList> setAttributes(ObjectName name,
-                                                        QueryExp queryExpr,
-                                                        AttributeList attributes)
-                                                                                 throws InstanceNotFoundException,
-                                                                                 ReflectionException,
-                                                                                 IOException;
+    public Map<ObjectName, OperationResult<AttributeList>> setAttributes(ObjectName name,
+                                                                         QueryExp queryExpr,
+                                                                         AttributeList attributes)
+                                                                                                  throws InstanceNotFoundException,
+                                                                                                  ReflectionException,
+                                                                                                  IOException;
 
     int getMBeanCount(ObjectName filter, QueryExp queryExpr);
 
-    <T> Map<ObjectName, T> invoke(ObjectName name, QueryExp queryExpr,
-                                  String operationName, Object params[],
-                                  String signature[])
-                                                     throws InstanceNotFoundException,
-                                                     MBeanException,
-                                                     ReflectionException,
-                                                     IOException;
+    <T> Map<ObjectName, OperationResult<T>> invoke(ObjectName name,
+                                                   QueryExp queryExpr,
+                                                   String operationName,
+                                                   Object params[],
+                                                   String signature[])
+                                                                      throws InstanceNotFoundException,
+                                                                      MBeanException,
+                                                                      ReflectionException,
+                                                                      IOException;
 }

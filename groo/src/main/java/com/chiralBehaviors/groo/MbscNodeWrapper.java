@@ -174,14 +174,14 @@ public class MbscNodeWrapper implements NodeMBean {
      *      javax.management.QueryExp, java.lang.String)
      */
     @Override
-    public Map<ObjectName, Object> getAttribute(ObjectName name,
-                                                QueryExp queryExpr,
-                                                String attribute)
-                                                                 throws MBeanException,
-                                                                 AttributeNotFoundException,
-                                                                 InstanceNotFoundException,
-                                                                 ReflectionException,
-                                                                 IOException {
+    public Map<ObjectName, OperationResult<Object>> getAttribute(ObjectName name,
+                                                                 QueryExp queryExpr,
+                                                                 String attribute)
+                                                                                  throws MBeanException,
+                                                                                  AttributeNotFoundException,
+                                                                                  InstanceNotFoundException,
+                                                                                  ReflectionException,
+                                                                                  IOException {
         return getProxy().getAttribute(name, queryExpr, attribute);
     }
 
@@ -217,12 +217,12 @@ public class MbscNodeWrapper implements NodeMBean {
      *      javax.management.QueryExp, java.lang.String[])
      */
     @Override
-    public Map<ObjectName, AttributeList> getAttributes(ObjectName name,
-                                                        QueryExp queryExpr,
-                                                        String[] attributes)
-                                                                            throws InstanceNotFoundException,
-                                                                            ReflectionException,
-                                                                            IOException {
+    public Map<ObjectName, OperationResult<AttributeList>> getAttributes(ObjectName name,
+                                                                         QueryExp queryExpr,
+                                                                         String[] attributes)
+                                                                                             throws InstanceNotFoundException,
+                                                                                             ReflectionException,
+                                                                                             IOException {
         return getProxy().getAttributes(name, queryExpr, attributes);
     }
 
@@ -350,9 +350,11 @@ public class MbscNodeWrapper implements NodeMBean {
      *      java.lang.String[])
      */
     @Override
-    public Map<ObjectName, Object> invoke(ObjectName name, QueryExp queryExpr,
-                                          String operationName,
-                                          Object[] params, String[] signature)
+    public Map<ObjectName, OperationResult<Object>> invoke(ObjectName name,
+                                                           QueryExp queryExpr,
+                                                           String operationName,
+                                                           Object[] params,
+                                                           String[] signature)
                                                                               throws InstanceNotFoundException,
                                                                               MBeanException,
                                                                               ReflectionException,
@@ -684,12 +686,12 @@ public class MbscNodeWrapper implements NodeMBean {
      *      javax.management.QueryExp, javax.management.AttributeList)
      */
     @Override
-    public Map<ObjectName, AttributeList> setAttributes(ObjectName name,
-                                                        QueryExp queryExpr,
-                                                        AttributeList attributes)
-                                                                                 throws InstanceNotFoundException,
-                                                                                 ReflectionException,
-                                                                                 IOException {
+    public Map<ObjectName, OperationResult<AttributeList>> setAttributes(ObjectName name,
+                                                                         QueryExp queryExpr,
+                                                                         AttributeList attributes)
+                                                                                                  throws InstanceNotFoundException,
+                                                                                                  ReflectionException,
+                                                                                                  IOException {
         return getProxy().setAttributes(name, queryExpr, attributes);
     }
 

@@ -120,13 +120,15 @@ public class RemoteTest {
         leaf2Connector.connect();
         groo.addConnection(new BasicMbscFactory(groo, leaf2Connector, null));
         assertEquals(2, intermediate.getChildren().size());
-        Map<ObjectName, Object> result = intermediate.invoke(multiTest1, null,
-                                                             "operation1",
-                                                             null, null);
+        Map<ObjectName, OperationResult<Object>> result = intermediate.invoke(multiTest1,
+                                                                              null,
+                                                                              "operation1",
+                                                                              null,
+                                                                              null);
         assertNotNull(result);
         assertEquals(2, result.size());
-        for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
-            assertEquals("-1", entry.getValue());
+        for (Map.Entry<ObjectName, OperationResult<Object>> entry : result.entrySet()) {
+            assertEquals("-1", entry.getValue().getResult());
         }
         assertNotNull(result.get(test1a));
         assertNotNull(result.get(test1b));
@@ -138,8 +140,8 @@ public class RemoteTest {
                                      new String[] { String.class.getCanonicalName() });
         assertNotNull(result);
         assertEquals(2, result.size());
-        for (Map.Entry<ObjectName, Object> entry : result.entrySet()) {
-            assertEquals("testy", entry.getValue());
+        for (Map.Entry<ObjectName, OperationResult<Object>> entry : result.entrySet()) {
+            assertEquals("testy", entry.getValue().getResult());
         }
         assertNotNull(result.get(test2a));
         assertNotNull(result.get(test2b));
