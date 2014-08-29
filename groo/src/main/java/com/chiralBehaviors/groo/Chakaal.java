@@ -101,6 +101,23 @@ public class Chakaal implements ChakaalMBean {
         this.delegationSubject = delegationSubject;
     }
 
+    /* (non-Javadoc)
+     * @see com.chiralBehaviors.groo.ChakaalMBean#getDiscovered()
+     */
+    @Override
+    public String[] getDiscovered() {
+        List<String> discoveredConnections = new ArrayList<>();
+        for (MbscFactory factory : discovered.values()) {
+            try {
+                discoveredConnections.add(factory.getConnectionId());
+            } catch (IOException e) {
+                log.trace(String.format("unable to get connection id for %s",
+                                        factory), e);
+            }
+        }
+        return discoveredConnections.toArray(new String[discoveredConnections.size()]);
+    }
+
     /**
      * @return the groo
      */
@@ -118,6 +135,10 @@ public class Chakaal implements ChakaalMBean {
             queries.add(query);
         }
         return queries.toArray(new String[] {});
+    }
+
+    public ServiceScope getScope() {
+        return scope;
     }
 
     /* (non-Javadoc)
@@ -263,23 +284,6 @@ public class Chakaal implements ChakaalMBean {
      */
     private void unregistered(ServiceReference reference) {
         log.info(String.format("Unregistering: %s", reference));
-    }
-
-    /* (non-Javadoc)
-     * @see com.chiralBehaviors.groo.ChakaalMBean#getDiscovered()
-     */
-    @Override
-    public String[] getDiscovered() {
-        List<String> discoveredConnections = new ArrayList<>();
-        for (MbscFactory factory : discovered.values()) {
-            try {
-                discoveredConnections.add(factory.getConnectionId());
-            } catch (IOException e) {
-                log.trace(String.format("unable to get connection id for %s",
-                                        factory), e);
-            }
-        }
-        return discoveredConnections.toArray(new String[discoveredConnections.size()]);
     }
 
 }
