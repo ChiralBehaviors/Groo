@@ -580,7 +580,7 @@ public class Node implements NodeMBean, MBeanRegistration {
                     throw (MBeanException) e.getCause();
                 }
                 if (!(e.getCause() instanceof InstanceNotFoundException)) {
-                    log.warn(String.format("%s experienced exception when retriving attributes %s, %s, %s, %s",
+                    log.warn(String.format("%s experienced exception when retriving attributes %s, %s, %s",
                                            this, pattern, queryExpr,
                                            Arrays.asList(attributes)), e);
                 }
