@@ -435,12 +435,6 @@ public class Node implements NodeMBean, MBeanRegistration {
                 future.cancel(true);
             }
         }
-        if (attributes.size() == 0) {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s, %s",
-                                                              pattern,
-                                                              queryExpr));
-        }
         return attributes;
     }
 
@@ -585,12 +579,6 @@ public class Node implements NodeMBean, MBeanRegistration {
                                            Arrays.asList(attributes)), e);
                 }
             }
-        }
-        if (attrs.size() == 0) {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s, %s",
-                                                              pattern,
-                                                              queryExpr));
         }
         return attrs;
     }
@@ -1029,11 +1017,6 @@ public class Node implements NodeMBean, MBeanRegistration {
             for (Future<?> future : futures) {
                 future.cancel(true);
             }
-        }
-        if (results.size() == 0) {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s, %s",
-                                                              filter, queryExpr));
         }
         return results;
     }
@@ -2187,12 +2170,6 @@ public class Node implements NodeMBean, MBeanRegistration {
                                            Arrays.asList(attributes)), e);
                 }
             }
-        }
-        if (attrs.size() == 0) {
-            throw new InstanceNotFoundException(
-                                                String.format("Instance not found: %s, %s",
-                                                              pattern,
-                                                              queryExpr));
         }
         return attrs;
     }
