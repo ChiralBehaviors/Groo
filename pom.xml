@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.hellblazer</groupId>
 	<artifactId>groo.app</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3-SNAPSHOT</version>
 	<name>Groo - A self assembling, hierarchical JMX router</name>
 	<description>A damn efficient, heirarchical aggregator for JMX mbeans</description>
 
