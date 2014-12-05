@@ -38,14 +38,14 @@
 	</modules>
 
 	<repositories>
-		<repository>
-			<id>ChiralBehaviors-Snapshots</id>
-			<url>http://repository-chiralbehaviors.forge.cloudbees.com/snapshot/</url>
-		</repository>
-		<repository>
-			<id>hellblazer-snapshots</id>
-			<url>https://repository-hal900000.forge.cloudbees.com/snapshot/</url>
-		</repository>
+        <repository>
+            <id>ChiralBehaviors-Snapshots</id>
+            <url>http://repository-chiralbehaviors.forge.cloudbees.com/snapshot/</url>
+        </repository> 
+        <repository>
+            <id>ChiralBehaviors-Release</id>
+            <url>http://repository-chiralbehaviors.forge.cloudbees.com/release/</url>
+        </repository> 
 	</repositories>
 
 	<dependencyManagement>
