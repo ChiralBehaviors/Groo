@@ -124,7 +124,7 @@ public class Groo implements GrooMBean, MBeanRegistration {
                 managed.add(name.getCanonicalName());
             }
         }
-        return managed.toArray(new String[] {});
+        return managed.toArray(new String[managed.size()]);
     }
 
     /**
@@ -143,7 +143,7 @@ public class Groo implements GrooMBean, MBeanRegistration {
         for (NetworkBuilder builder : builders.values()) {
             filters.add(builder.getFilter().getFilterString());
         }
-        return filters.toArray(new String[] {});
+        return filters.toArray(new String[filters.size()]);
     }
 
     public List<Node> getParents() {
